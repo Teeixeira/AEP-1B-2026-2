@@ -1,0 +1,20 @@
+# Compilação
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Arquivos de build
+/bin/
+/dist/
+
+# Variáveis de ambiente
+.env
+
+# IDE
+.vscode/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
