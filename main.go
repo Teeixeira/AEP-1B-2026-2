@@ -1,7 +1,29 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+
+	"AEP-1B-2026-2/internal/database"
+
+	"github.com/joho/godotenv"
+)
 
 func main() {
-	fmt.Println("AEP 1B 2026-2")
+
+	err := godotenv.Load()
+
+	if err != nil {
+		log.Fatal("Erro ao carregar arquivo .env")
+	}
+
+	client, err := database.Connect()
+
+	if err != nil {
+		log.Fatal("Erro ao conectar ao MongoDB:", err)
+	}
+
+	defer client.Disconnect(nil)
+
+	fmt.Println("MongoDB conectado com sucesso!")
 }
