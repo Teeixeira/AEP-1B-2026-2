@@ -1,15 +1,14 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"log"
-	"time"
 
 	"AEP-1B-2026-2/internal/database"
-	"AEP-1B-2026-2/internal/models"
+	"AEP-1B-2026-2/internal/handlers"
 	"AEP-1B-2026-2/internal/repositories"
+	"AEP-1B-2026-2/internal/services"
 
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
 
@@ -29,103 +28,123 @@ func main() {
 
 	defer client.Disconnect(nil)
 
-	fmt.Println("MongoDB conectado com sucesso!")
+	log.Println("MongoDB conectado com sucesso!")
 
 	databaseMongo := client.Database("AEP")
 
 	repository := repositories.NewUsuarioRepository(databaseMongo)
 
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		10*time.Second,
-	)
-	defer cancel()
+	service := services.NewUsuarioService(repository)
 
-	usuario := models.Usuario{
-		Nome:  "Leonardo",
-		Email: "leonardo@email.com",
-		Senha: "123456",
-		Ativo: true,
-	}
+	handler := handlers.NewUsuarioHandler(service)
 
-	err = repository.Create(ctx, &usuario)
+	router := gin.Default()
 
-	if err != nil {
-		log.Fatal("Erro ao criar usuário:", err)
-	}
+	router.POST("/usuarios", handler.Create)
+	router.GET("/usuarios", handler.FindAll)
+	router.GET("/usuarios/:id", handler.FindByID)
+	router.PUT("/usuarios/:id", handler.Update)
+	router.DELETE("/usuarios/:id", handler.Delete)
 
-	fmt.Println("Usuário criado com suscesso!")
-	fmt.Println("ID:", usuario.ID)
+	log.Println("Servidor rodando na porta 8080")
 
-	usuarios, err := repository.FindAll(ctx)
+	err = router.Run(":8080")
 
 	if err != nil {
-		log.Fatal("Erro ao buscar usuários:", err)
+		log.Fatal(err)
 	}
 
-	fmt.Println("Usuários encontrados:")
+	// ctx, cancel := context.WithTimeout(
+	// 	context.Background(),
+	// 	10*time.Second,
+	// )
+	// defer cancel()
 
-	for _, usuario := range usuarios {
-		fmt.Println(usuario)
-	}
+	// usuario := models.Usuario{
+	// 	Nome:  "Leonardo",
+	// 	Email: "leonardo@email.com",
+	// 	Senha: "123456",
+	// 	Ativo: true,
+	// }
 
-	usuarioEncontrado, err := repository.FindByID(
-		ctx,
-		usuario.ID,
-	)
+	// err = repository.Create(ctx, &usuario)
 
-	if err != nil {
-		log.Fatal("Erro ao buscar usuário:", err)
-	}
+	// if err != nil {
+	// 	log.Fatal("Erro ao criar usuário:", err)
+	// }
 
-	fmt.Println("Usuário encontrado:")
-	fmt.Println("ID:", usuarioEncontrado.ID)
-	fmt.Println("Nome:", usuarioEncontrado.Nome)
-	fmt.Println("Email:", usuarioEncontrado.Email)
-	fmt.Println("Ativo:", usuarioEncontrado.Ativo)
+	// fmt.Println("Usuário criado com suscesso!")
+	// fmt.Println("ID:", usuario.ID)
 
-	fmt.Println("=============== UPDATE TEST ===============")
+	// usuarios, err := repository.FindAll(ctx)
 
-	usuarioAtualizado := models.Usuario{
-		Nome:  "Leonardo Atualizado",
-		Email: "leonardo.novo@email.com",
-		Senha: "654321",
-		Ativo: true,
-	}
+	// if err != nil {
+	// 	log.Fatal("Erro ao buscar usuários:", err)
+	// }
 
-	err = repository.Update(
-		ctx,
-		usuario.ID,
-		usuarioAtualizado,
-	)
+	// fmt.Println("Usuários encontrados:")
 
-	if err != nil {
-		log.Fatal("Erro ao atualizar usuário:", err)
-	}
+	// for _, usuario := range usuarios {
+	// 	fmt.Println(usuario)
+	// }
 
-	fmt.Println("Usuário atualizado com sucesso!")
+	// usuarioEncontrado, err := repository.FindByID(
+	// 	ctx,
+	// 	usuario.ID,
+	// )
 
-	fmt.Println("=============== DELETE TEST ===============")
+	// if err != nil {
+	// 	log.Fatal("Erro ao buscar usuário:", err)
+	// }
 
-	err = repository.Delete(
-		ctx,
-		usuario.ID,
-	)
+	// fmt.Println("Usuário encontrado:")
+	// fmt.Println("ID:", usuarioEncontrado.ID)
+	// fmt.Println("Nome:", usuarioEncontrado.Nome)
+	// fmt.Println("Email:", usuarioEncontrado.Email)
+	// fmt.Println("Ativo:", usuarioEncontrado.Ativo)
 
-	if err != nil {
-		log.Fatal("Erro ao excluir usuário!", err)
-	}
+	// fmt.Println("=============== UPDATE TEST ===============")
 
-	fmt.Println("Usuário deletado com sucesso!")
+	// usuarioAtualizado := models.Usuario{
+	// 	Nome:  "Leonardo Atualizado",
+	// 	Email: "leonardo.novo@email.com",
+	// 	Senha: "654321",
+	// 	Ativo: true,
+	// }
 
-	fmt.Println("=============== DELETE CONFIRMATION TEST ===============")
+	// err = repository.Update(
+	// 	ctx,
+	// 	usuario.ID,
+	// 	usuarioAtualizado,
+	// )
 
-	_, err = repository.FindByID(
-		ctx,
-		usuario.ID,
-	)
+	// if err != nil {
+	// 	log.Fatal("Erro ao atualizar usuário:", err)
+	// }
 
-	if err != nil {
-		fmt.Println("Usuário não encontrado após a exclusão!", err)
-	}
+	// fmt.Println("Usuário atualizado com sucesso!")
+
+	// fmt.Println("=============== DELETE TEST ===============")
+
+	// err = repository.Delete(
+	// 	ctx,
+	// 	usuario.ID,
+	// )
+
+	// if err != nil {
+	// 	log.Fatal("Erro ao excluir usuário!", err)
+	// }
+
+	// fmt.Println("Usuário deletado com sucesso!")
+
+	// fmt.Println("=============== DELETE CONFIRMATION TEST ===============")
+
+	// _, err = repository.FindByID(
+	// 	ctx,
+	// 	usuario.ID,
+	// )
+
+	// if err != nil {
+	// 	fmt.Println("Usuário não encontrado após a exclusão!", err)
+	// }
 }
