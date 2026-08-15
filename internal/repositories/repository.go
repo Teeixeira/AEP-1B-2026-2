@@ -76,3 +76,55 @@ func (repository *UsuarioRepository) FindByID(
 
 	return &usuario, nil
 }
+
+func (repository *UsuarioRepository) Update(
+	ctx context.Context,
+	id bson.ObjectID,
+	usuario models.Usuario,
+) error {
+
+	update := bson.M{
+		"$set": bson.M{
+			"nome":  usuario.Nome,
+			"email": usuario.Email,
+			"senha": usuario.Senha,
+			"ativo": usuario.Ativo,
+		},
+	}
+
+	result, err := repository.collection.UpdateOne(
+		ctx,
+		bson.M{"_id": id},
+		update,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if result.MatchedCount == 0 {
+		return mongo.ErrNoDocuments
+	}
+
+	return nil
+}
+
+func (repository *UsuarioRepository) Delete(
+	ctx context.Context,
+	id bson.ObjectID,
+) error {
+	result, err := repository.collection.DeleteOne(
+		ctx,
+		bson.M{"_id": id},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if result.DeletedCount == 0 {
+		return mongo.ErrNoDocuments
+	}
+
+	return nil
+}

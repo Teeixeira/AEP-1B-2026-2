@@ -83,4 +83,49 @@ func main() {
 	fmt.Println("Nome:", usuarioEncontrado.Nome)
 	fmt.Println("Email:", usuarioEncontrado.Email)
 	fmt.Println("Ativo:", usuarioEncontrado.Ativo)
+
+	fmt.Println("=============== UPDATE TEST ===============")
+
+	usuarioAtualizado := models.Usuario{
+		Nome:  "Leonardo Atualizado",
+		Email: "leonardo.novo@email.com",
+		Senha: "654321",
+		Ativo: true,
+	}
+
+	err = repository.Update(
+		ctx,
+		usuario.ID,
+		usuarioAtualizado,
+	)
+
+	if err != nil {
+		log.Fatal("Erro ao atualizar usuário:", err)
+	}
+
+	fmt.Println("Usuário atualizado com sucesso!")
+
+	fmt.Println("=============== DELETE TEST ===============")
+
+	err = repository.Delete(
+		ctx,
+		usuario.ID,
+	)
+
+	if err != nil {
+		log.Fatal("Erro ao excluir usuário!", err)
+	}
+
+	fmt.Println("Usuário deletado com sucesso!")
+
+	fmt.Println("=============== DELETE CONFIRMATION TEST ===============")
+
+	_, err = repository.FindByID(
+		ctx,
+		usuario.ID,
+	)
+
+	if err != nil {
+		fmt.Println("Usuário não encontrado após a exclusão!", err)
+	}
 }
