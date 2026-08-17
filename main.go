@@ -34,19 +34,18 @@ func main() {
 
 	databaseMongo := client.Database("AEP")
 
-	repository := repositories.NewUsuarioRepository(databaseMongo)
-
-	service := services.NewUsuarioService(repository)
-
-	handler := handlers.NewUsuarioHandler(service)
-
 	router := gin.Default()
 
-	router.POST("/usuarios", handler.Create)
-	router.GET("/usuarios", handler.FindAll)
-	router.GET("/usuarios/:id", handler.FindByID)
-	router.PUT("/usuarios/:id", handler.Update)
-	router.DELETE("/usuarios/:id", handler.Delete)
+	usuarioRepository := repositories.NewUsuarioRepository(databaseMongo)
+	usuarioService := services.NewUsuarioService(usuarioRepository)
+	usuarioHandler := handlers.NewUsuarioHandler(usuarioService)
+
+	router.POST("/usuarios", usuarioHandler.Create)
+	router.GET("/usuarios", usuarioHandler.FindAll)
+	router.GET("/usuarios/:id", usuarioHandler.FindByID)
+	router.PUT("/usuarios/:id", usuarioHandler.Update)
+	router.DELETE("/usuarios/:id", usuarioHandler.Delete)
+
 	crimeRepository := repositories.NewCrimeRepository(databaseMongo)
 
 	indexCtx, cancelIndex := context.WithTimeout(context.Background(), 10*time.Second)
