@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"log"
+	"time"
 
 	"AEP-1B-2026-2/internal/database"
 	"AEP-1B-2026-2/internal/handlers"
@@ -45,6 +47,24 @@ func main() {
 	router.GET("/usuarios/:id", handler.FindByID)
 	router.PUT("/usuarios/:id", handler.Update)
 	router.DELETE("/usuarios/:id", handler.Delete)
+	crimeRepository := repositories.NewCrimeRepository(databaseMongo)
+
+	indexCtx, cancelIndex := context.WithTimeout(context.Background(), 10*time.Second)
+	err = crimeRepository.EnsureGeoIndex(indexCtx)
+	cancelIndex()
+	if err != nil {
+		log.Fatal("Erro ao criar índice geoespacial:", err)
+	}
+
+	crimeService := services.NewCrimeService(crimeRepository)
+	crimeHandler := handlers.NewCrimeHandler(crimeService)
+
+	router.POST("/crimes", crimeHandler.Create)
+	router.GET("/crimes", crimeHandler.FindAll)
+	router.GET("/crimes/proximos", crimeHandler.FindNear)
+	router.GET("/crimes/:id", crimeHandler.FindByID)
+	router.PUT("/crimes/:id", crimeHandler.Update)
+	router.DELETE("/crimes/:id", crimeHandler.Delete)
 
 	log.Println("Servidor rodando na porta 8080")
 
