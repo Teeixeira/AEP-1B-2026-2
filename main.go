@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"log"
+	"time"
 
 	"AEP-1B-2026-2/internal/database"
 	"AEP-1B-2026-2/internal/handlers"
@@ -32,19 +34,36 @@ func main() {
 
 	databaseMongo := client.Database("AEP")
 
-	repository := repositories.NewUsuarioRepository(databaseMongo)
-
-	service := services.NewUsuarioService(repository)
-
-	handler := handlers.NewUsuarioHandler(service)
-
 	router := gin.Default()
 
-	router.POST("/usuarios", handler.Create)
-	router.GET("/usuarios", handler.FindAll)
-	router.GET("/usuarios/:id", handler.FindByID)
-	router.PUT("/usuarios/:id", handler.Update)
-	router.DELETE("/usuarios/:id", handler.Delete)
+	usuarioRepository := repositories.NewUsuarioRepository(databaseMongo)
+	usuarioService := services.NewUsuarioService(usuarioRepository)
+	usuarioHandler := handlers.NewUsuarioHandler(usuarioService)
+
+	router.POST("/usuarios", usuarioHandler.Create)
+	router.GET("/usuarios", usuarioHandler.FindAll)
+	router.GET("/usuarios/:id", usuarioHandler.FindByID)
+	router.PUT("/usuarios/:id", usuarioHandler.Update)
+	router.DELETE("/usuarios/:id", usuarioHandler.Delete)
+
+	crimeRepository := repositories.NewCrimeRepository(databaseMongo)
+
+	indexCtx, cancelIndex := context.WithTimeout(context.Background(), 10*time.Second)
+	err = crimeRepository.EnsureGeoIndex(indexCtx)
+	cancelIndex()
+	if err != nil {
+		log.Fatal("Erro ao criar índice geoespacial:", err)
+	}
+
+	crimeService := services.NewCrimeService(crimeRepository)
+	crimeHandler := handlers.NewCrimeHandler(crimeService)
+
+	router.POST("/crimes", crimeHandler.Create)
+	router.GET("/crimes", crimeHandler.FindAll)
+	router.GET("/crimes/proximos", crimeHandler.FindNear)
+	router.GET("/crimes/:id", crimeHandler.FindByID)
+	router.PUT("/crimes/:id", crimeHandler.Update)
+	router.DELETE("/crimes/:id", crimeHandler.Delete)
 
 	log.Println("Servidor rodando na porta 8080")
 
