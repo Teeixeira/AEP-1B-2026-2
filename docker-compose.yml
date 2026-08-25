@@ -4,7 +4,7 @@ services:
     container_name: aep-mongo
     restart: unless-stopped
     env_file:
-      - .env
+      - backend/.env
     volumes:
       - mongo_data:/data/db
 
@@ -17,7 +17,7 @@ services:
     ports:
       - "8080:8080"
     env_file:
-      - .env
+      - backend/.env
     depends_on:
       - mongo
 
