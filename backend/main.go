@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"time"
 
 	"AEP-1B-2026-2/internal/database"
@@ -12,14 +13,22 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+
+	swaggerFiles "github.com/swaggo/files"
+    ginSwagger "github.com/swaggo/gin-swagger"
+
+	_ "AEP-1B-2026-2/docs"
 )
 
+// @title AEP API
+// @version 1.0
+// @description API for the AEP project.
+// @host localhost:8080
+// @BasePath /api
 func main() {
 
-	err := godotenv.Load()
-
-	if err != nil {
-		log.Fatal("Erro ao carregar arquivo .env")
+	if err := godotenv.Load(); err != nil {
+		log.Println("Arquivo .env não encontrado; usando variáveis de ambiente")
 	}
 
 	client, err := database.Connect()
@@ -35,16 +44,29 @@ func main() {
 	databaseMongo := client.Database("AEP")
 
 	router := gin.Default()
+	
+    swaggerHandler := ginSwagger.WrapHandler(swaggerFiles.Handler)
+
+    router.GET("/swagger/*any", func(c *gin.Context) {
+        if c.Param("any") == "/" {
+            c.Redirect(http.StatusFound, "/swagger/index.html")
+            return
+        }
+
+        swaggerHandler(c)
+    })
+	
+	api := router.Group("/api")
 
 	usuarioRepository := repositories.NewUsuarioRepository(databaseMongo)
 	usuarioService := services.NewUsuarioService(usuarioRepository)
 	usuarioHandler := handlers.NewUsuarioHandler(usuarioService)
 
-	router.POST("/usuarios", usuarioHandler.Create)
-	router.GET("/usuarios", usuarioHandler.FindAll)
-	router.GET("/usuarios/:id", usuarioHandler.FindByID)
-	router.PUT("/usuarios/:id", usuarioHandler.Update)
-	router.DELETE("/usuarios/:id", usuarioHandler.Delete)
+	api.POST("/usuarios", usuarioHandler.Create)
+	api.GET("/usuarios", usuarioHandler.FindAll)
+	api.GET("/usuarios/:id", usuarioHandler.FindByID)
+	api.PUT("/usuarios/:id", usuarioHandler.Update)
+	api.DELETE("/usuarios/:id", usuarioHandler.Delete)
 
 	crimeRepository := repositories.NewCrimeRepository(databaseMongo)
 
@@ -58,12 +80,12 @@ func main() {
 	crimeService := services.NewCrimeService(crimeRepository)
 	crimeHandler := handlers.NewCrimeHandler(crimeService)
 
-	router.POST("/crimes", crimeHandler.Create)
-	router.GET("/crimes", crimeHandler.FindAll)
-	router.GET("/crimes/proximos", crimeHandler.FindNear)
-	router.GET("/crimes/:id", crimeHandler.FindByID)
-	router.PUT("/crimes/:id", crimeHandler.Update)
-	router.DELETE("/crimes/:id", crimeHandler.Delete)
+	api.POST("/crimes", crimeHandler.Create)
+	api.GET("/crimes", crimeHandler.FindAll)
+	api.GET("/crimes/proximos", crimeHandler.FindNear)
+	api.GET("/crimes/:id", crimeHandler.FindByID)
+	api.PUT("/crimes/:id", crimeHandler.Update)
+	api.DELETE("/crimes/:id", crimeHandler.Delete)
 
 	log.Println("Servidor rodando na porta 8080")
 
