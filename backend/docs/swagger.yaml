@@ -1,0 +1,421 @@
+basePath: /api
+definitions:
+  models.Crime:
+    properties:
+      data_hora:
+        type: string
+      descricao:
+        type: string
+      id:
+        type: string
+      localizacao:
+        $ref: '#/definitions/models.Localizacao'
+      tipo:
+        type: string
+    type: object
+  models.Localizacao:
+    properties:
+      coordinates:
+        items:
+          type: number
+        type: array
+      type:
+        type: string
+    type: object
+  models.Usuario:
+    properties:
+      ativo:
+        type: boolean
+      email:
+        type: string
+      id:
+        type: string
+      nome:
+        type: string
+      senha:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API for the AEP project.
+  title: AEP API
+  version: "1.0"
+paths:
+  /crimes:
+    get:
+      description: Retorna todos os registros de crimes
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Crime'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Listar crimes
+      tags:
+      - crimes
+    post:
+      consumes:
+      - application/json
+      description: Cria um novo registro de crime
+      parameters:
+      - description: Dados do crime
+        in: body
+        name: crime
+        required: true
+        schema:
+          $ref: '#/definitions/models.Crime'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Crime'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Criar crime
+      tags:
+      - crimes
+  /crimes/{id}:
+    delete:
+      description: Exclui um crime existente
+      parameters:
+      - description: ID do crime
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Excluir crime
+      tags:
+      - crimes
+    get:
+      description: Retorna um crime específico pelo seu ID
+      parameters:
+      - description: ID do crime
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Crime'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Buscar crime por ID
+      tags:
+      - crimes
+    put:
+      consumes:
+      - application/json
+      description: Atualiza um crime existente
+      parameters:
+      - description: ID do crime
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados atualizados do crime
+        in: body
+        name: crime
+        required: true
+        schema:
+          $ref: '#/definitions/models.Crime'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Crime'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Atualizar crime
+      tags:
+      - crimes
+  /crimes/proximos:
+    get:
+      description: Retorna crimes próximos a uma localização geográfica
+      parameters:
+      - description: Latitude
+        in: query
+        name: lat
+        required: true
+        type: number
+      - description: Longitude
+        in: query
+        name: lng
+        required: true
+        type: number
+      - default: 1000
+        description: Raio em metros
+        in: query
+        name: raio
+        type: number
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Crime'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Buscar crimes próximos
+      tags:
+      - crimes
+  /usuarios:
+    get:
+      description: Retorna todos os usuários
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Usuario'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Listar usuários
+      tags:
+      - usuarios
+    post:
+      consumes:
+      - application/json
+      description: Cria um novo usuário
+      parameters:
+      - description: Dados do usuário
+        in: body
+        name: usuario
+        required: true
+        schema:
+          $ref: '#/definitions/models.Usuario'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Usuario'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Criar usuário
+      tags:
+      - usuarios
+  /usuarios/{id}:
+    delete:
+      description: Exclui um usuário existente
+      parameters:
+      - description: ID do usuário
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Excluir usuário
+      tags:
+      - usuarios
+    get:
+      description: Retorna um usuário específico pelo seu ID
+      parameters:
+      - description: ID do usuário
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Usuario'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Buscar usuário por ID
+      tags:
+      - usuarios
+    put:
+      consumes:
+      - application/json
+      description: Atualiza um usuário existente
+      parameters:
+      - description: ID do usuário
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados atualizados do usuário
+        in: body
+        name: usuario
+        required: true
+        schema:
+          $ref: '#/definitions/models.Usuario'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Usuario'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Atualizar usuário
+      tags:
+      - usuarios
+swagger: "2.0"
