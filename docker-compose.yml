@@ -3,6 +3,8 @@ services:
     image: mongo:8
     container_name: aep-mongo
     restart: unless-stopped
+    ports:
+      - "27017:27017"
     env_file:
       - backend/.env
     volumes:
