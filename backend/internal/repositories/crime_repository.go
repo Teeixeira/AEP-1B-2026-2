@@ -5,9 +5,20 @@ import (
 	"fmt"
 
 	"AEP-1B-2026-2/internal/models"
+
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
+
+type CrimeRepositoryInterface interface {
+	EnsureGeoIndex(ctx context.Context) error
+	Create(ctx context.Context, crime *models.Crime) error
+	FindAll(ctx context.Context) ([]models.Crime, error)
+	FindByID(ctx context.Context, id bson.ObjectID) (*models.Crime, error)
+	FindNear(ctx context.Context, longitude float64, latitude float64, raioMetros float64) ([]models.Crime, error)
+	Update(ctx context.Context, id bson.ObjectID, crime models.Crime) error
+	Delete(ctx context.Context, id bson.ObjectID) error
+}
 
 type CrimeRepository struct {
 	collection *mongo.Collection
