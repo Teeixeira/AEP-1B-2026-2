@@ -14,10 +14,10 @@ import (
 )
 
 type CrimeHandler struct {
-	service *services.CrimeService
+	service services.CrimeServiceInterface
 }
 
-func NewCrimeHandler(service *services.CrimeService) *CrimeHandler {
+func NewCrimeHandler(service services.CrimeServiceInterface) *CrimeHandler {
 	return &CrimeHandler{service: service}
 }
 

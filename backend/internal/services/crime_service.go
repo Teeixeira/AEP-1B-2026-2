@@ -6,16 +6,26 @@ import (
 
 	"AEP-1B-2026-2/internal/models"
 	"AEP-1B-2026-2/internal/repositories"
+
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 var ErrRaioInvalido = errors.New("raio de busca deve ser maior que zero")
 
-type CrimeService struct {
-	repository *repositories.CrimeRepository
+type CrimeServiceInterface interface {
+	Create(ctx context.Context, crime *models.Crime) error
+	FindAll(ctx context.Context) ([]models.Crime, error)
+	FindByID(ctx context.Context, id bson.ObjectID) (*models.Crime, error)
+	FindNear(ctx context.Context, longitude float64, latitude float64, raioMetros float64) ([]models.Crime, error)
+	Update(ctx context.Context, id bson.ObjectID, crime models.Crime) error
+	Delete(ctx context.Context, id bson.ObjectID) error
 }
 
-func NewCrimeService(repository *repositories.CrimeRepository) *CrimeService {
+type CrimeService struct {
+	repository repositories.CrimeRepositoryInterface
+}
+
+func NewCrimeService(repository repositories.CrimeRepositoryInterface) *CrimeService {
 	return &CrimeService{repository: repository}
 }
 
