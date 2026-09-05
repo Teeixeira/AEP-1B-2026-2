@@ -13,6 +13,14 @@ type UsuarioRepository struct {
 	collection *mongo.Collection
 }
 
+type UsuarioRepositoryInterface interface {
+	Create(ctx context.Context, usuario *models.Usuario) error
+	FindAll(ctx context.Context) ([]models.Usuario, error)
+	FindByID(ctx context.Context, id bson.ObjectID) (*models.Usuario, error)
+	Update(ctx context.Context, id bson.ObjectID, usuario models.Usuario) error
+	Delete(ctx context.Context, id bson.ObjectID) error
+}
+
 func NewUsuarioRepository(database *mongo.Database) *UsuarioRepository {
 	return &UsuarioRepository{
 		collection: database.Collection("usuarios"),
