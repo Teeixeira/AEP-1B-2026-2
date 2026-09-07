@@ -11,11 +11,11 @@ import (
 )
 
 type UsuarioHandler struct {
-	service *services.UsuarioService
+	service services.UsuarioServiceInterface
 }
 
 func NewUsuarioHandler(
-	service *services.UsuarioService,
+	service services.UsuarioServiceInterface,
 ) *UsuarioHandler {
 
 	return &UsuarioHandler{
