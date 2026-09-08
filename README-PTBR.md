@@ -1,6 +1,6 @@
 # Classificador de Criminalidade[cite: 1]
 
-> 🎯 **Objetivos de Desenvolvimento Sustentável (ODS) Abrangidos:**
+> **Objetivos de Desenvolvimento Sustentável (ODS) Abrangidos:**
 > - **ODS 16: Paz, Justiça e Instituições Eficazes** — Promover sociedades pacíficas e inclusivas para o desenvolvimento sustentável, auxiliando na conscientização e redução da criminalidade local por meio do acesso à informação[cite: 1].
 > - **ODS 11: Cidades e Comunidades Sustentáveis** — Tornar as cidades e os assentamentos humanos inclusivos, seguros, resilientes e sustentáveis através da geolocalização e transparência de relatos urbanos[cite: 1].
 
