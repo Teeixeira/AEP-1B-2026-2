@@ -1,18 +1,23 @@
 import L from 'leaflet';
-import markerIconUrl from "leaflet/dist/images/marker-icon.png";
-import markerIconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
-import markerShadowUrl from "leaflet/dist/images/marker-shadow.png";
+import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
+import markerIconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
+import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
 
-export async function setupMap(element) {
+export function setupMap(element) {
     L.Icon.Default.prototype.options.iconUrl = markerIconUrl;
     L.Icon.Default.prototype.options.iconRetinaUrl = markerIconRetinaUrl;
     L.Icon.Default.prototype.options.shadowUrl = markerShadowUrl;
-    L.Icon.Default.imagePath = ""; 
+    L.Icon.Default.imagePath = '';
 
     const map = L.map(element).setView([-23.4213, -51.9331], 13);
-    const points = L.layerGroup().addTo(map);
+    const points = L.featureGroup().addTo(map);
+    const form = document.querySelector('#search-form');
+    const radiusInput = document.querySelector('#search-radius');
+    const searchButton = document.querySelector('#search-button');
     const locationButton = document.querySelector('#use-location');
     const testButton = document.querySelector('#add-test-points');
+    const retryButton = document.querySelector('#retry-search');
+    const status = document.querySelector('#search-status');
     let userMarker;
     let location;
 
@@ -21,23 +26,71 @@ export async function setupMap(element) {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    function useLocation() {
-        if (!navigator.geolocation) {
-            alert('Seu navegador não suporta localização.');
+    function showStatus(message, type = 'info', retry = false) {
+        status.textContent = message;
+        status.dataset.type = type;
+        retryButton.hidden = !retry;
+    }
+
+    function setBusy(busy) {
+        locationButton.disabled = busy;
+        radiusInput.disabled = busy;
+        searchButton.disabled = busy;
+        testButton.disabled = busy || !location;
+        retryButton.disabled = busy;
+        form.setAttribute('aria-busy', String(busy));
+    }
+
+    async function searchCrimes() {
+        const radiusKm = Number(radiusInput.value);
+        const radiusInMeters = radiusKm * 1000;
+
+        if (!Number.isFinite(radiusInMeters) || radiusInMeters <= 0) {
+            showStatus('Informe um raio maior que zero, em quilômetros.', 'error');
+            radiusInput.focus();
             return;
         }
 
-        locationButton.disabled = true;
-        testButton.disabled = true;
-        locationButton.textContent = 'Buscando localização...';
+        if (!location) {
+            useLocation();
+            return;
+        }
+
+        setBusy(true);
+        showStatus('Carregando ocorrências...', 'loading');
+
+        try {
+            const count = await getNear(points, location, radiusInMeters);
+            const distance = radiusKm.toLocaleString('pt-BR', { maximumSignificantDigits: 15 });
+            if (count === 0) {
+                showStatus(`Nenhuma ocorrência encontrada em um raio de ${distance} km. Tente aumentar a distância.`, 'empty');
+            } else {
+                map.fitBounds(points.getBounds().extend([location.lat, location.lng]), {
+                    padding: [32, 32],
+                    maxZoom: 15
+                });
+                const result = count === 1 ? '1 ocorrência encontrada' : `${count} ocorrências encontradas`;
+                showStatus(`${result} em um raio de ${distance} km.`, 'success');
+            }
+        } catch (error) {
+            showStatus('Não foi possível buscar as ocorrências. Tente novamente.', 'error', true);
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    function useLocation() {
+        if (!navigator.geolocation) {
+            showStatus('Seu navegador não suporta localização.', 'error');
+            return;
+        }
+
+        setBusy(true);
+        showStatus('Buscando sua localização...', 'loading');
 
         navigator.geolocation.getCurrentPosition(
             async (position) => {
-                location = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                };
-
+                location = { lat: position.coords.latitude, lng: position.coords.longitude };
                 map.setView([location.lat, location.lng], 15);
 
                 if (userMarker) {
@@ -52,32 +105,30 @@ export async function setupMap(element) {
                     }).addTo(map).bindTooltip('Você está aqui');
                 }
 
-                try {
-                    await getNear(points, location, 20000);
-                } catch (error) {
-                    alert('Não foi possível buscar os pontos. Tente novamente.');
-                } finally {
-                    locationButton.disabled = false;
-                    testButton.disabled = false;
-                    locationButton.textContent = 'Usar minha localização';
-                }
+                setBusy(false);
+                await searchCrimes();
             },
             (error) => {
-                alert('Não foi possível obter sua localização. Confira a permissão de localização do navegador e tente novamente.');
-                locationButton.disabled = false;
-                testButton.disabled = !location;
-                locationButton.textContent = 'Usar minha localização';
+                const message = error.code === 1
+                    ? 'Permita o acesso à localização no navegador para buscar ocorrências perto de você.'
+                    : 'Não foi possível obter sua localização. Tente novamente.';
+                showStatus(message, 'error', true);
+                setBusy(false);
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
         );
     }
 
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        await searchCrimes();
+    });
     locationButton.addEventListener('click', useLocation);
+    retryButton.addEventListener('click', () => location ? searchCrimes() : useLocation());
 
     testButton.addEventListener('click', async () => {
-        testButton.disabled = true;
-        locationButton.disabled = true;
-        testButton.textContent = 'Adicionando...';
+        setBusy(true);
+        showStatus('Adicionando pontos de teste...', 'loading');
         const offsets = [[0.002, 0.002], [-0.002, 0.001], [0.001, -0.002]];
 
         try {
@@ -95,47 +146,41 @@ export async function setupMap(element) {
                         }
                     })
                 });
-
-                if (!response.ok) {
-                    throw new Error('Erro ao criar ponto de teste');
-                }
+                if (!response.ok) throw new Error('Erro ao criar ponto de teste');
             }
-
-            await getNear(points, location, 20000);
         } catch (error) {
-            alert('Não foi possível adicionar ou carregar todos os pontos de teste.');
+            showStatus('Não foi possível adicionar todos os pontos de teste. Atualize a busca antes de tentar novamente.', 'error', true);
+            return;
         } finally {
-            testButton.disabled = false;
-            locationButton.disabled = false;
-            testButton.textContent = 'Adicionar pontos de teste';
+            setBusy(false);
         }
+
+        await searchCrimes();
     });
 
     useLocation();
 }
 
 export async function getNear(points, location, radiusInMeters) {
-    const response = await fetch(`/api/crimes/proximos?lat=${location.lat}&lng=${location.lng}&raio=${radiusInMeters}`)
-
-    if (!response.ok) {
-        throw new Error('Erro ao buscar pontos');
-    }
-
-    const crimes = await response.json()
     points.clearLayers();
+    const response = await fetch(`/api/crimes/proximos?lat=${location.lat}&lng=${location.lng}&raio=${radiusInMeters}`);
+    if (!response.ok) throw new Error('Erro ao buscar ocorrências');
+    const crimes = (await response.json()) || [];
 
-    (crimes || []).forEach(crime => {
-        
+    crimes.forEach(crime => {
         const marker = L.marker([crime.localizacao.coordinates[1], crime.localizacao.coordinates[0]], {
             draggable: true
-        }).addTo(points)
-            .bindPopup(
-                `<div>
-                    <h1>${crime.tipo}</h1>
-                    <p>${crime.descricao}</p>
-                    <p>${(new Date(crime.data_hora)).toLocaleString()}</p>
-                </div>`
-            )
+        }).addTo(points);
+
+        const popup = document.createElement('div');
+        const title = document.createElement('h3');
+        const description = document.createElement('p');
+        const date = document.createElement('p');
+        title.textContent = crime.tipo;
+        description.textContent = crime.descricao;
+        date.textContent = new Date(crime.data_hora).toLocaleString('pt-BR');
+        popup.append(title, description, date);
+        marker.bindPopup(popup);
 
         marker.on('dragend', async () => {
             const coordinates = crime.localizacao.coordinates;
@@ -149,10 +194,7 @@ export async function getNear(points, location, radiusInMeters) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(crime)
                 });
-
-                if (!response.ok) {
-                    throw new Error('Erro ao atualizar localização');
-                }
+                if (!response.ok) throw new Error('Erro ao atualizar localização');
             } catch (error) {
                 crime.localizacao.coordinates = coordinates;
                 marker.setLatLng([coordinates[1], coordinates[0]]);
@@ -162,4 +204,6 @@ export async function getNear(points, location, radiusInMeters) {
             }
         });
     });
+
+    return crimes.length;
 }
