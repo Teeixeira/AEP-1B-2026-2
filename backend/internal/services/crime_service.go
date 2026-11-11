@@ -10,7 +10,12 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-var ErrRaioInvalido = errors.New("raio de busca deve ser maior que zero")
+var (
+	ErrRaioInvalido      = errors.New("raio de busca deve ser maior que zero")
+	ErrCamposObrigatorios = errors.New("campos obrigatórios não preenchidos: tipo, descricao, data_hora e coordenadas são necessários")
+	ErrLatitudeInvalida  = errors.New("latitude deve estar entre -90 e 90")
+	ErrLongitudeInvalida = errors.New("longitude deve estar entre -180 e 180")
+)
 
 type CrimeServiceInterface interface {
 	Create(ctx context.Context, crime *models.Crime) error
@@ -29,10 +34,32 @@ func NewCrimeService(repository repositories.CrimeRepositoryInterface) *CrimeSer
 	return &CrimeService{repository: repository}
 }
 
+func validarCrime(crime *models.Crime) error {
+	if crime.Tipo == "" || crime.Descricao == "" || crime.DataHora == "" ||
+		len(crime.Localizacao.Coordinates) < 2 {
+		return ErrCamposObrigatorios
+	}
+
+	longitude := crime.Localizacao.Coordinates[0]
+	latitude := crime.Localizacao.Coordinates[1]
+
+	if latitude < -90 || latitude > 90 {
+		return ErrLatitudeInvalida
+	}
+	if longitude < -180 || longitude > 180 {
+		return ErrLongitudeInvalida
+	}
+
+	return nil
+}
+
 func (service *CrimeService) Create(
 	ctx context.Context,
 	crime *models.Crime,
 ) error {
+	if err := validarCrime(crime); err != nil {
+		return err
+	}
 	crime.Localizacao.Type = models.TipoPonto
 	return service.repository.Create(ctx, crime)
 }
@@ -65,6 +92,9 @@ func (service *CrimeService) Update(
 	id bson.ObjectID,
 	crime models.Crime,
 ) error {
+	if err := validarCrime(&crime); err != nil {
+		return err
+	}
 	crime.Localizacao.Type = models.TipoPonto
 	return service.repository.Update(ctx, id, crime)
 }

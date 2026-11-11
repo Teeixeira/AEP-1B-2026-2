@@ -40,6 +40,12 @@ func (handler *CrimeHandler) Create(c *gin.Context) {
 	}
 
 	if err := handler.service.Create(c.Request.Context(), &crime); err != nil {
+		if errors.Is(err, services.ErrCamposObrigatorios) ||
+			errors.Is(err, services.ErrLatitudeInvalida) ||
+			errors.Is(err, services.ErrLongitudeInvalida) {
+			c.JSON(http.StatusBadRequest, gin.H{"erro": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"erro": "Erro ao criar crime"})
 		return
 	}
@@ -178,6 +184,12 @@ func (handler *CrimeHandler) Update(c *gin.Context) {
 	)
 
 	if err != nil {
+		if errors.Is(err, services.ErrCamposObrigatorios) ||
+			errors.Is(err, services.ErrLatitudeInvalida) ||
+			errors.Is(err, services.ErrLongitudeInvalida) {
+			c.JSON(http.StatusBadRequest, gin.H{"erro": err.Error()})
+			return
+		}
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			c.JSON(http.StatusNotFound, gin.H{"erro": "Crime não encontrado"})
 			return

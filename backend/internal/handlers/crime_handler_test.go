@@ -119,6 +119,42 @@ func TestCrimeHandler_Create_InvalidJSON(t *testing.T) {
 	}
 }
 
+func TestCrimeHandler_Create_CamposIncompletos(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := NewCrimeHandler(&stubCrimeService{createFn: func(ctx context.Context, crime *models.Crime) error {
+		return services.ErrCamposObrigatorios
+	}})
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+	payload := `{"tipo":"furto","localizacao":{"coordinates":[-46.63,-23.55]}}`
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/crimes", strings.NewReader(payload))
+	ctx.Request.Header.Set("Content-Type", "application/json")
+
+	handler.Create(ctx)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status inesperado: %d", rec.Code)
+	}
+}
+
+func TestCrimeHandler_Create_CoordenadaInvalida(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := NewCrimeHandler(&stubCrimeService{createFn: func(ctx context.Context, crime *models.Crime) error {
+		return services.ErrLatitudeInvalida
+	}})
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+	payload := `{"tipo":"furto","descricao":"desc","data_hora":"2026-08-28T12:00:00Z","localizacao":{"coordinates":[-46.63,-91]}}`
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/crimes", strings.NewReader(payload))
+	ctx.Request.Header.Set("Content-Type", "application/json")
+
+	handler.Create(ctx)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status inesperado: %d", rec.Code)
+	}
+}
+
 func TestCrimeHandler_FindAll(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	crimesEsperados := []models.Crime{{ID: bson.NewObjectID(), Tipo: "assalto"}}
