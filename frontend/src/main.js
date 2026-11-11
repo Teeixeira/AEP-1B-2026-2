@@ -22,6 +22,10 @@ document.querySelector('#app').innerHTML = `
                 Usar minha localização
             </button>
         </form>
+        <label class="heat-toggle">
+            <input id="show-heat" type="checkbox" checked>
+            Áreas de calor
+        </label>
         <div class="status-area">
             <p id="search-status" role="status" aria-live="polite" aria-atomic="true" data-type="info">Use sua localização para começar.</p>
             <button id="retry-search" class="text-button" type="button" hidden>Tentar novamente</button>
@@ -31,7 +35,13 @@ document.querySelector('#app').innerHTML = `
             <button id="add-test-points" class="text-button" type="button" disabled>Adicionar três pontos próximos</button>
         </details>
     </aside>
-    <div class="map-legend"><i class="location-dot"></i>Sua localização</div>
+    <div class="map-legend">
+        <span class="location-label"><i class="location-dot"></i>Sua localização</span>
+        <div id="heat-legend">
+            <span>Concentração de ocorrências</span>
+            <div class="heat-scale"><span>Menor</span><i></i><span>Maior</span></div>
+        </div>
+    </div>
 </section>
 `
 
