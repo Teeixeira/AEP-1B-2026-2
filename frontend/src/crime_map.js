@@ -1,4 +1,5 @@
 import L from 'leaflet';
+import { HeatLayer } from 'leaflet.heat';
 import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
 import markerIconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
@@ -11,6 +12,16 @@ export function setupMap(element) {
 
     const map = L.map(element).setView([-23.4213, -51.9331], 13);
     const points = L.featureGroup().addTo(map);
+    const heat = new HeatLayer([], {
+        radius: 45,
+        blur: 30,
+        max: 4,
+        maxZoom: 13,
+        minOpacity: 0.2,
+        gradient: { 0.2: '#ffd166', 0.5: '#f59e36', 0.75: '#ed633c', 1: '#c62828' }
+    }).addTo(map);
+    const heatToggle = document.querySelector('#show-heat');
+    const heatLegend = document.querySelector('#heat-legend');
     const form = document.querySelector('#search-form');
     const radiusInput = document.querySelector('#search-radius');
     const searchButton = document.querySelector('#search-button');
@@ -60,7 +71,7 @@ export function setupMap(element) {
         showStatus('Carregando ocorrências...', 'loading');
 
         try {
-            const count = await getNear(points, location, radiusInMeters);
+            const count = await getNear(points, location, radiusInMeters, heat);
             const distance = radiusKm.toLocaleString('pt-BR', { maximumSignificantDigits: 15 });
             if (count === 0) {
                 showStatus(`Nenhuma ocorrência encontrada em um raio de ${distance} km. Tente aumentar a distância.`, 'empty');
@@ -125,6 +136,14 @@ export function setupMap(element) {
     });
     locationButton.addEventListener('click', useLocation);
     retryButton.addEventListener('click', () => location ? searchCrimes() : useLocation());
+    heatToggle.addEventListener('change', () => {
+        if (heatToggle.checked) {
+            heat.addTo(map);
+        } else {
+            map.removeLayer(heat);
+        }
+        heatLegend.hidden = !heatToggle.checked;
+    });
 
     testButton.addEventListener('click', async () => {
         setBusy(true);
@@ -161,8 +180,13 @@ export function setupMap(element) {
     useLocation();
 }
 
-export async function getNear(points, location, radiusInMeters) {
+function updateHeat(points, heat) {
+    heat.setLatLngs(points.getLayers().map(marker => marker.getLatLng()));
+}
+
+export async function getNear(points, location, radiusInMeters, heat) {
     points.clearLayers();
+    updateHeat(points, heat);
     const response = await fetch(`/api/crimes/proximos?lat=${location.lat}&lng=${location.lng}&raio=${radiusInMeters}`);
     if (!response.ok) throw new Error('Erro ao buscar ocorrências');
     const crimes = (await response.json()) || [];
@@ -201,9 +225,11 @@ export async function getNear(points, location, radiusInMeters) {
                 alert('Não foi possível salvar a nova localização. Tente novamente.');
             } finally {
                 marker.dragging.enable();
+                updateHeat(points, heat);
             }
         });
     });
 
+    updateHeat(points, heat);
     return crimes.length;
 }
