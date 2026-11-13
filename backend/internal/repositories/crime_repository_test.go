@@ -14,6 +14,31 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
+func TestBuildNearFilter(t *testing.T) {
+	dataInicio := time.Date(2026, time.August, 28, 12, 0, 0, 0, time.UTC)
+	dataFim := dataInicio.Add(time.Hour)
+
+	filter := buildNearFilter(-46.63, -23.55, 500, "roubo", dataInicio, dataFim)
+	if filter["tipo"] != "roubo" {
+		t.Fatalf("filtro tipo inesperado: %#v", filter["tipo"])
+	}
+
+	dateFilter, ok := filter["data_hora"].(bson.M)
+	if !ok {
+		t.Fatalf("filtro de data inesperado: %#v", filter["data_hora"])
+	}
+	start, startOK := dateFilter["$gte"].(time.Time)
+	end, endOK := dateFilter["$lte"].(time.Time)
+	if !startOK || !endOK || !start.Equal(dataInicio) || !end.Equal(dataFim) {
+		t.Fatalf("filtro de data inesperado: %#v", filter["data_hora"])
+	}
+
+	optionalFiltersOmitted := buildNearFilter(-46.63, -23.55, 500, "", time.Time{}, time.Time{})
+	if len(optionalFiltersOmitted) != 1 {
+		t.Fatalf("filtros opcionais deveriam ser omitidos: %#v", optionalFiltersOmitted)
+	}
+}
+
 func TestCrimeRepository_Integration(t *testing.T) {
 	uri := os.Getenv("MONGODB_URI")
 	if uri == "" {
@@ -45,7 +70,7 @@ func TestCrimeRepository_Integration(t *testing.T) {
 	crime := &models.Crime{
 		Tipo:      "furto",
 		Descricao: "carteira roubada",
-		DataHora:  "2026-08-28T13:00:00Z",
+		DataHora:  time.Date(2026, time.August, 28, 13, 0, 0, 0, time.UTC),
 		Localizacao: models.Localizacao{
 			Latitude:  -23.5505,
 			Longitude: -46.6333,
@@ -75,7 +100,15 @@ func TestCrimeRepository_Integration(t *testing.T) {
 		t.Fatal("crime encontrado não corresponde ao ID esperado")
 	}
 
-	near, err := repository.FindNear(ctx, -46.6333, -23.5505, 1000)
+	near, err := repository.FindNear(
+		ctx,
+		-46.6333,
+		-23.5505,
+		1000,
+		"furto",
+		time.Date(2026, time.August, 28, 12, 0, 0, 0, time.UTC),
+		time.Date(2026, time.August, 28, 14, 0, 0, 0, time.UTC),
+	)
 	if err != nil {
 		t.Fatalf("FindNear() falhou: %v", err)
 	}
@@ -86,7 +119,7 @@ func TestCrimeRepository_Integration(t *testing.T) {
 	crimeAtualizada := models.Crime{
 		Tipo:      "assalto",
 		Descricao: "atualizado",
-		DataHora:  "2026-08-28T14:00:00Z",
+		DataHora:  time.Date(2026, time.August, 28, 14, 0, 0, 0, time.UTC),
 		Localizacao: models.Localizacao{
 			Latitude:  -23.6000,
 			Longitude: -46.7000,

@@ -3,6 +3,7 @@ definitions:
   models.Crime:
     properties:
       data_hora:
+        format: date-time
         type: string
       descricao:
         type: string
@@ -227,6 +228,18 @@ paths:
         in: query
         name: raio
         type: number
+      - description: Tipo de crime
+        in: query
+        name: tipo
+        type: string
+      - description: Início do período (RFC3339)
+        in: query
+        name: data_inicio
+        type: string
+      - description: Fim do período (RFC3339)
+        in: query
+        name: data_fim
+        type: string
       produces:
       - application/json
       responses:

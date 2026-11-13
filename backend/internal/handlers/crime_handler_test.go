@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"AEP-1B-2026-2/internal/models"
 	"AEP-1B-2026-2/internal/services"
@@ -20,7 +21,7 @@ type stubCrimeService struct {
 	createFn   func(ctx context.Context, crime *models.Crime) error
 	findAllFn  func(ctx context.Context) ([]models.Crime, error)
 	findByIDFn func(ctx context.Context, id bson.ObjectID) (*models.Crime, error)
-	findNearFn func(ctx context.Context, longitude float64, latitude float64, raioMetros float64) ([]models.Crime, error)
+	findNearFn func(ctx context.Context, longitude, latitude, raioMetros float64, tipo string, dataInicio, dataFim time.Time) ([]models.Crime, error)
 	updateFn   func(ctx context.Context, id bson.ObjectID, crime models.Crime) error
 	deleteFn   func(ctx context.Context, id bson.ObjectID) error
 }
@@ -46,11 +47,15 @@ func (s *stubCrimeService) FindByID(ctx context.Context, id bson.ObjectID) (*mod
 	return nil, nil
 }
 
-func (s *stubCrimeService) FindNear(ctx context.Context, longitude float64, latitude float64, raioMetros float64) ([]models.Crime, error) {
+func (s *stubCrimeService) FindNear(ctx context.Context, longitude, latitude, raioMetros float64, tipo string, dataInicio, dataFim time.Time) ([]models.Crime, error) {
 	if s.findNearFn != nil {
-		return s.findNearFn(ctx, longitude, latitude, raioMetros)
+		return s.findNearFn(ctx, longitude, latitude, raioMetros, tipo, dataInicio, dataFim)
 	}
 	return nil, nil
+}
+
+func testCrimeDate() time.Time {
+	return time.Date(2026, time.August, 28, 12, 0, 0, 0, time.UTC)
 }
 
 func (s *stubCrimeService) Update(ctx context.Context, id bson.ObjectID, crime models.Crime) error {
@@ -228,19 +233,36 @@ func TestCrimeHandler_FindByID_NotFound(t *testing.T) {
 
 func TestCrimeHandler_FindNear(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	handler := NewCrimeHandler(&stubCrimeService{findNearFn: func(ctx context.Context, longitude float64, latitude float64, raioMetros float64) ([]models.Crime, error) {
-		if longitude != -46.63 || latitude != -23.55 || raioMetros != 500 {
-			t.Fatalf("valores inesperados: lon=%.2f lat=%.2f raio=%.2f", longitude, latitude, raioMetros)
+	dataInicio := testCrimeDate()
+	dataFim := dataInicio.Add(time.Hour)
+	handler := NewCrimeHandler(&stubCrimeService{findNearFn: func(ctx context.Context, longitude, latitude, raioMetros float64, tipo string, inicio, fim time.Time) ([]models.Crime, error) {
+		if longitude != -46.63 || latitude != -23.55 || raioMetros != 500 || tipo != "roubo" ||
+			!inicio.Equal(dataInicio) || !fim.Equal(dataFim) {
+			t.Fatalf("valores inesperados: lon=%.2f lat=%.2f raio=%.2f tipo=%q início=%v fim=%v", longitude, latitude, raioMetros, tipo, inicio, fim)
 		}
 		return []models.Crime{{Tipo: "roubo"}}, nil
 	}})
 	rec := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(rec)
-	ctx.Request = httptest.NewRequest(http.MethodGet, "/crimes/proximos?lat=-23.55&lng=-46.63&raio=500", nil)
+	ctx.Request = httptest.NewRequest(http.MethodGet, "/crimes/proximos?lat=-23.55&lng=-46.63&raio=500&tipo=roubo&data_inicio=2026-08-28T12:00:00Z&data_fim=2026-08-28T13:00:00Z", nil)
 
 	handler.FindNear(ctx)
 
 	if rec.Code != http.StatusOK {
+		t.Fatalf("status inesperado: %d", rec.Code)
+	}
+}
+
+func TestCrimeHandler_FindNear_InvalidDate(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := NewCrimeHandler(&stubCrimeService{})
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+	ctx.Request = httptest.NewRequest(http.MethodGet, "/crimes/proximos?lat=-23.55&lng=-46.63&data_inicio=not-a-date", nil)
+
+	handler.FindNear(ctx)
+
+	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status inesperado: %d", rec.Code)
 	}
 }
@@ -261,7 +283,7 @@ func TestCrimeHandler_FindNear_InvalidLatLng(t *testing.T) {
 
 func TestCrimeHandler_FindNear_InvalidRadius(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	handler := NewCrimeHandler(&stubCrimeService{findNearFn: func(ctx context.Context, longitude float64, latitude float64, raioMetros float64) ([]models.Crime, error) {
+	handler := NewCrimeHandler(&stubCrimeService{findNearFn: func(ctx context.Context, longitude, latitude, raioMetros float64, tipo string, dataInicio, dataFim time.Time) ([]models.Crime, error) {
 		return nil, services.ErrRaioInvalido
 	}})
 	rec := httptest.NewRecorder()

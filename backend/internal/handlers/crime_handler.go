@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"AEP-1B-2026-2/internal/models"
 	"AEP-1B-2026-2/internal/services"
@@ -105,6 +106,9 @@ func (handler *CrimeHandler) FindByID(c *gin.Context) {
 // @Param lat query number true "Latitude"
 // @Param lng query number true "Longitude"
 // @Param raio query number false "Raio em metros" default(1000)
+// @Param tipo query string false "Tipo de crime"
+// @Param data_inicio query string false "Início do período (RFC3339)"
+// @Param data_fim query string false "Fim do período (RFC3339)"
 // @Success 200 {array} models.Crime
 // @Failure 400 {object} ErroResposta
 // @Failure 500 {object} ErroResposta
@@ -128,15 +132,32 @@ func (handler *CrimeHandler) FindNear(c *gin.Context) {
 		return
 	}
 
+	tipo := c.Query("tipo")
+	dataInicio, err := parseOptionalDateTime(c.Query("data_inicio"))
+	if err != nil {
+		RespostaEntradaInvalida(c, "Parâmetro 'data_inicio' inválido; use RFC3339")
+		return
+	}
+	dataFim, err := parseOptionalDateTime(c.Query("data_fim"))
+	if err != nil {
+		RespostaEntradaInvalida(c, "Parâmetro 'data_fim' inválido; use RFC3339")
+		return
+	}
+
 	crimes, err := handler.service.FindNear(
 		c.Request.Context(),
 		lng,
 		lat,
 		raio,
+		tipo,
+		dataInicio,
+		dataFim,
 	)
 
 	if err != nil {
 		if errors.Is(err, services.ErrRaioInvalido) {
+		if errors.Is(err, services.ErrRaioInvalido) ||
+			errors.Is(err, services.ErrPeriodoInvalido) {
 			RespostaEntradaInvalida(c, err.Error())
 			return
 		}
@@ -146,6 +167,13 @@ func (handler *CrimeHandler) FindNear(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, crimes)
+}
+
+func parseOptionalDateTime(value string) (time.Time, error) {
+	if value == "" {
+		return time.Time{}, nil
+	}
+	return time.Parse(time.RFC3339, value)
 }
 
 // Update godoc
