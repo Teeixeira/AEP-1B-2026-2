@@ -2,11 +2,10 @@ package models
 
 import "go.mongodb.org/mongo-driver/v2/bson"
 
-const TipoPonto = "Point"
-
+// Localizacao armazena coordenadas geográficas no formato de pares legado (longitude, latitude)
 type Localizacao struct {
-	Type        string    `bson:"type" json:"type"`
-	Coordinates []float64 `bson:"coordinates" json:"coordinates"`
+	Longitude float64 `bson:"longitude" json:"longitude"`
+	Latitude  float64 `bson:"latitude" json:"latitude"`
 }
 
 type Crime struct {

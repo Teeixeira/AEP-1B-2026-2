@@ -91,7 +91,7 @@ func (repository *CrimeRepository) FindNear(
 		"localizacao": bson.M{
 			"$near": bson.M{
 				"$geometry": bson.M{
-					"type":        models.TipoPonto,
+					"type":        "Point",
 					"coordinates": []float64{longitude, latitude},
 				},
 				"$maxDistance": raioMetros,
@@ -123,6 +123,9 @@ func (repository *CrimeRepository) Update(
 			"descricao":   crime.Descricao,
 			"data_hora":   crime.DataHora,
 			"localizacao": crime.Localizacao,
+		},
+		"$unset": bson.M{
+			"localizacao_geo": "",
 		},
 	}
 	result, err := repository.collection.UpdateOne(ctx, bson.M{"_id": id}, update)

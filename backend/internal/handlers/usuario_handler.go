@@ -17,7 +17,6 @@ type UsuarioHandler struct {
 func NewUsuarioHandler(
 	service services.UsuarioServiceInterface,
 ) *UsuarioHandler {
-
 	return &UsuarioHandler{
 		service: service,
 	}
@@ -31,19 +30,15 @@ func NewUsuarioHandler(
 // @Produce json
 // @Param usuario body models.Usuario true "Dados do usuário"
 // @Success 201 {object} models.Usuario
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} ErroResposta
+// @Failure 500 {object} ErroResposta
 // @Router /usuarios [post]
 func (handler *UsuarioHandler) Create(c *gin.Context) {
-
 	var usuario models.Usuario
 
 	err := c.ShouldBindJSON(&usuario)
-
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"erro": "JSON Inválido",
-		})
+		RespostaEntradaInvalida(c, "JSON Inválido", err.Error())
 		return
 	}
 
@@ -53,9 +48,7 @@ func (handler *UsuarioHandler) Create(c *gin.Context) {
 	)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"erro": "Erro ao criar usuário",
-		})
+		RespostaFalhaInterna(c, "Erro ao criar usuário", err.Error())
 		return
 	}
 
@@ -68,18 +61,15 @@ func (handler *UsuarioHandler) Create(c *gin.Context) {
 // @Tags usuarios
 // @Produce json
 // @Success 200 {array} models.Usuario
-// @Failure 500 {object} map[string]string
+// @Failure 500 {object} ErroResposta
 // @Router /usuarios [get]
 func (handler *UsuarioHandler) FindAll(c *gin.Context) {
-
 	usuarios, err := handler.service.FindAll(
 		c.Request.Context(),
 	)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"erro": "Erro ao buscar usuários",
-		})
+		RespostaFalhaInterna(c, "Erro ao buscar usuários", err.Error())
 		return
 	}
 
@@ -93,19 +83,15 @@ func (handler *UsuarioHandler) FindAll(c *gin.Context) {
 // @Produce json
 // @Param id path string true "ID do usuário"
 // @Success 200 {object} models.Usuario
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 400 {object} ErroResposta
+// @Failure 404 {object} ErroResposta
 // @Router /usuarios/{id} [get]
 func (handler *UsuarioHandler) FindByID(c *gin.Context) {
-
 	id := c.Param("id")
 
 	objectID, err := bson.ObjectIDFromHex(id)
-
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"erro": "ID Inválido",
-		})
+		RespostaEntradaInvalida(c, "ID Inválido")
 		return
 	}
 
@@ -115,9 +101,7 @@ func (handler *UsuarioHandler) FindByID(c *gin.Context) {
 	)
 
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"erro": "Usuário não encontrado",
-		})
+		RespostaNaoEncontrado(c, "Usuário não encontrado")
 		return
 	}
 
@@ -133,31 +117,24 @@ func (handler *UsuarioHandler) FindByID(c *gin.Context) {
 // @Param id path string true "ID do usuário"
 // @Param usuario body models.Usuario true "Dados atualizados do usuário"
 // @Success 200 {object} models.Usuario
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} ErroResposta
+// @Failure 404 {object} ErroResposta
+// @Failure 500 {object} ErroResposta
 // @Router /usuarios/{id} [put]
 func (handler *UsuarioHandler) Update(c *gin.Context) {
-
 	id := c.Param("id")
 
 	objectID, err := bson.ObjectIDFromHex(id)
-
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"erro": "ID Inválido",
-		})
+		RespostaEntradaInvalida(c, "ID Inválido")
 		return
 	}
 
 	var usuario models.Usuario
 
 	err = c.ShouldBindJSON(&usuario)
-
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"erro": "JSON Inválido",
-		})
+		RespostaEntradaInvalida(c, "JSON Inválido", err.Error())
 		return
 	}
 
@@ -168,14 +145,11 @@ func (handler *UsuarioHandler) Update(c *gin.Context) {
 	)
 
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"erro": "Usuário não encontrado",
-		})
+		RespostaNaoEncontrado(c, "Usuário não encontrado")
 		return
 	}
 
 	usuario.ID = objectID
-
 	c.JSON(http.StatusOK, usuario)
 }
 
@@ -186,20 +160,16 @@ func (handler *UsuarioHandler) Update(c *gin.Context) {
 // @Produce json
 // @Param id path string true "ID do usuário"
 // @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} ErroResposta
+// @Failure 404 {object} ErroResposta
+// @Failure 500 {object} ErroResposta
 // @Router /usuarios/{id} [delete]
 func (handler *UsuarioHandler) Delete(c *gin.Context) {
-
 	id := c.Param("id")
 
 	objectID, err := bson.ObjectIDFromHex(id)
-
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"erro": "ID inválido",
-		})
+		RespostaEntradaInvalida(c, "ID inválido")
 		return
 	}
 
@@ -209,9 +179,7 @@ func (handler *UsuarioHandler) Delete(c *gin.Context) {
 	)
 
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"erro": "Usuário não encontrado",
-		})
+		RespostaNaoEncontrado(c, "Usuário não encontrado")
 		return
 	}
 

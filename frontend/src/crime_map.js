@@ -1,8 +1,8 @@
 import L from 'leaflet';
-import { HeatLayer } from 'leaflet.heat';
 import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
 import markerIconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
+import { APIError, parseAPIError } from './api_error.js';
 
 export function setupMap(element) {
     L.Icon.Default.prototype.options.iconUrl = markerIconUrl;
@@ -12,16 +12,6 @@ export function setupMap(element) {
 
     const map = L.map(element).setView([-23.4213, -51.9331], 13);
     const points = L.featureGroup().addTo(map);
-    const heat = new HeatLayer([], {
-        radius: 45,
-        blur: 30,
-        max: 4,
-        maxZoom: 13,
-        minOpacity: 0.2,
-        gradient: { 0.2: '#ffd166', 0.5: '#f59e36', 0.75: '#ed633c', 1: '#c62828' }
-    }).addTo(map);
-    const heatToggle = document.querySelector('#show-heat');
-    const heatLegend = document.querySelector('#heat-legend');
     const form = document.querySelector('#search-form');
     const radiusInput = document.querySelector('#search-radius');
     const searchButton = document.querySelector('#search-button');
@@ -71,7 +61,7 @@ export function setupMap(element) {
         showStatus('Carregando ocorrências...', 'loading');
 
         try {
-            const count = await getNear(points, location, radiusInMeters, heat);
+            const count = await getNear(points, location, radiusInMeters);
             const distance = radiusKm.toLocaleString('pt-BR', { maximumSignificantDigits: 15 });
             if (count === 0) {
                 showStatus(`Nenhuma ocorrência encontrada em um raio de ${distance} km. Tente aumentar a distância.`, 'empty');
@@ -84,7 +74,11 @@ export function setupMap(element) {
                 showStatus(`${result} em um raio de ${distance} km.`, 'success');
             }
         } catch (error) {
-            showStatus('Não foi possível buscar as ocorrências. Tente novamente.', 'error', true);
+            const userMsg = error instanceof APIError
+                ? error.toUserMessage()
+                : 'Não foi possível buscar as ocorrências. Tente novamente.';
+            const retryable = error instanceof APIError ? error.isRetryable() : true;
+            showStatus(userMsg, 'error', retryable);
         } finally {
             setBusy(false);
         }
@@ -136,14 +130,6 @@ export function setupMap(element) {
     });
     locationButton.addEventListener('click', useLocation);
     retryButton.addEventListener('click', () => location ? searchCrimes() : useLocation());
-    heatToggle.addEventListener('change', () => {
-        if (heatToggle.checked) {
-            heat.addTo(map);
-        } else {
-            map.removeLayer(heat);
-        }
-        heatLegend.hidden = !heatToggle.checked;
-    });
 
     testButton.addEventListener('click', async () => {
         setBusy(true);
@@ -152,23 +138,34 @@ export function setupMap(element) {
 
         try {
             for (let i = 0; i < offsets.length; i++) {
-                const response = await fetch('/api/crimes', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        tipo: `Ponto de teste ${i + 1}`,
-                        descricao: 'Registro fictício para testar o arraste no mapa.',
-                        data_hora: new Date().toISOString(),
-                        localizacao: {
-                            type: 'Point',
-                            coordinates: [location.lng + offsets[i][0], location.lat + offsets[i][1]]
-                        }
-                    })
-                });
-                if (!response.ok) throw new Error('Erro ao criar ponto de teste');
+                let response;
+                try {
+                    response = await fetch('/api/crimes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            tipo: `Ponto de teste ${i + 1}`,
+                            descricao: 'Registro fictício para testar o arraste no mapa.',
+                            data_hora: new Date().toISOString(),
+                            localizacao: {
+                                latitude: location.lat + offsets[i][1],
+                                longitude: location.lng + offsets[i][0]
+                            }
+                        })
+                    });
+                } catch (netErr) {
+                    throw new APIError('ERRO_CONEXAO', 'Falha ao conectar com o servidor.', 0, netErr.message);
+                }
+
+                if (!response.ok) {
+                    throw await parseAPIError(response, `Erro ao criar ponto de teste ${i + 1}`);
+                }
             }
         } catch (error) {
-            showStatus('Não foi possível adicionar todos os pontos de teste. Atualize a busca antes de tentar novamente.', 'error', true);
+            const userMsg = error instanceof APIError
+                ? error.toUserMessage()
+                : 'Não foi possível adicionar todos os pontos de teste.';
+            showStatus(userMsg, 'error', error instanceof APIError ? error.isRetryable() : true);
             return;
         } finally {
             setBusy(false);
@@ -180,19 +177,23 @@ export function setupMap(element) {
     useLocation();
 }
 
-function updateHeat(points, heat) {
-    heat.setLatLngs(points.getLayers().map(marker => marker.getLatLng()));
-}
-
-export async function getNear(points, location, radiusInMeters, heat) {
+export async function getNear(points, location, radiusInMeters) {
     points.clearLayers();
-    updateHeat(points, heat);
-    const response = await fetch(`/api/crimes/proximos?lat=${location.lat}&lng=${location.lng}&raio=${radiusInMeters}`);
-    if (!response.ok) throw new Error('Erro ao buscar ocorrências');
+    let response;
+    try {
+        response = await fetch(`/api/crimes/proximos?lat=${location.lat}&lng=${location.lng}&raio=${radiusInMeters}`);
+    } catch (networkError) {
+        throw new APIError('ERRO_CONEXAO', 'Falha ao conectar com o servidor.', 0, networkError.message);
+    }
+
+    if (!response.ok) {
+        throw await parseAPIError(response, 'Erro ao buscar ocorrências próximas.');
+    }
+
     const crimes = (await response.json()) || [];
 
     crimes.forEach(crime => {
-        const marker = L.marker([crime.localizacao.coordinates[1], crime.localizacao.coordinates[0]], {
+        const marker = L.marker([crime.localizacao.latitude, crime.localizacao.longitude], {
             draggable: true
         }).addTo(points);
 
@@ -207,29 +208,41 @@ export async function getNear(points, location, radiusInMeters, heat) {
         marker.bindPopup(popup);
 
         marker.on('dragend', async () => {
-            const coordinates = crime.localizacao.coordinates;
+            const originalLat = crime.localizacao.latitude;
+            const originalLng = crime.localizacao.longitude;
             const position = marker.getLatLng();
             marker.dragging.disable();
-            crime.localizacao.coordinates = [position.lng, position.lat];
+            crime.localizacao.latitude = position.lat;
+            crime.localizacao.longitude = position.lng;
 
             try {
-                const response = await fetch(`/api/crimes/${crime.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(crime)
-                });
-                if (!response.ok) throw new Error('Erro ao atualizar localização');
+                let response;
+                try {
+                    response = await fetch(`/api/crimes/${crime.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(crime)
+                    });
+                } catch (netErr) {
+                    throw new APIError('ERRO_CONEXAO', 'Falha ao conectar com o servidor.', 0, netErr.message);
+                }
+
+                if (!response.ok) {
+                    throw await parseAPIError(response, 'Erro ao atualizar localização da ocorrência.');
+                }
             } catch (error) {
-                crime.localizacao.coordinates = coordinates;
-                marker.setLatLng([coordinates[1], coordinates[0]]);
-                alert('Não foi possível salvar a nova localização. Tente novamente.');
+                crime.localizacao.latitude = originalLat;
+                crime.localizacao.longitude = originalLng;
+                marker.setLatLng([originalLat, originalLng]);
+                const msg = error instanceof APIError
+                    ? error.toUserMessage()
+                    : 'Não foi possível salvar a nova localização. Tente novamente.';
+                alert(msg);
             } finally {
                 marker.dragging.enable();
-                updateHeat(points, heat);
             }
         });
     });
 
-    updateHeat(points, heat);
     return crimes.length;
 }

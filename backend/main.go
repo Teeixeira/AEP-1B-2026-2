@@ -2,17 +2,20 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"net/http"
 	"time"
 
 	"AEP-1B-2026-2/internal/database"
 	"AEP-1B-2026-2/internal/handlers"
+	_ "AEP-1B-2026-2/internal/migrations"
 	"AEP-1B-2026-2/internal/repositories"
 	"AEP-1B-2026-2/internal/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	migrate "github.com/xakep666/mongo-migrate"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -25,22 +28,46 @@ import (
 // @description API for the AEP project.
 // @BasePath /api
 func main() {
+	migrateDown := flag.Bool("migrate-down", false, "Reverte a última migração aplicada e encerra")
+	migrateOnly := flag.Bool("migrate-only", false, "Executa as migrações pendentes e encerra sem iniciar o servidor")
+	flag.Parse()
 
 	if err := godotenv.Load(); err != nil {
 		log.Println("Arquivo .env não encontrado; usando variáveis de ambiente")
 	}
 
 	client, err := database.Connect()
-
 	if err != nil {
 		log.Fatal("Erro ao conectar ao MongoDB:", err)
 	}
-
 	defer client.Disconnect(nil)
 
 	log.Println("MongoDB conectado com sucesso!")
 
 	databaseMongo := client.Database("AEP")
+
+	migrate.SetDatabase(databaseMongo)
+
+	// Se solicitado rollback via flag:
+	if *migrateDown {
+		log.Println("Executando rollback da última migração...")
+		if err := migrate.Down(context.Background(), 1); err != nil {
+			log.Fatal("Erro ao reverter migração:", err)
+		}
+		log.Println("Rollback concluído com sucesso!")
+		return
+	}
+
+	// Executa migrações pendentes no banco
+	if err := migrate.Up(context.Background(), migrate.AllAvailable); err != nil {
+		log.Fatal("Erro ao executar migrações:", err)
+	}
+	log.Println("Migrações executadas com sucesso!")
+
+	// Se solicitado apenas migrar e sair:
+	if *migrateOnly {
+		return
+	}
 
 	router := gin.Default()
 
@@ -90,7 +117,6 @@ func main() {
 	log.Println("Swagger path: /swagger/index.html")
 
 	err = router.Run(":8080")
-
 	if err != nil {
 		log.Fatal(err)
 	}

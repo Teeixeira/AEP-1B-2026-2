@@ -50,6 +50,23 @@ Para desenvolvimento local sem Docker, instale também:
 
 A API está disponível em [http://localhost:8080](http://localhost:8080), e sua documentação Swagger está disponível em [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html).
 
+### Executar migrations pelo Docker
+
+Na raiz do repositório, com `backend/.env` configurado, compile a imagem do backend e execute as migrations pendentes:
+
+```powershell
+docker compose build backend
+docker compose run --rm backend ./server -migrate-only
+```
+
+O comando `docker compose run` utiliza as variáveis de `backend/.env` definidas no serviço `backend` e inicia o serviço `mongo` como dependência, se necessário. Para reverter a última migration:
+
+```powershell
+docker compose run --rm backend ./server -migrate-down
+```
+
+Esses comandos executam o backend em um contêiner temporário e não iniciam a API.
+
 Para interromper os serviços, pressione `Ctrl+C` ou execute:
 
 ```powershell

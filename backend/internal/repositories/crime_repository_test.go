@@ -47,8 +47,8 @@ func TestCrimeRepository_Integration(t *testing.T) {
 		Descricao: "carteira roubada",
 		DataHora:  "2026-08-28T13:00:00Z",
 		Localizacao: models.Localizacao{
-			Type:        models.TipoPonto,
-			Coordinates: []float64{-46.6333, -23.5505},
+			Latitude:  -23.5505,
+			Longitude: -46.6333,
 		},
 	}
 
@@ -88,8 +88,8 @@ func TestCrimeRepository_Integration(t *testing.T) {
 		Descricao: "atualizado",
 		DataHora:  "2026-08-28T14:00:00Z",
 		Localizacao: models.Localizacao{
-			Type:        models.TipoPonto,
-			Coordinates: []float64{-46.7000, -23.6000},
+			Latitude:  -23.6000,
+			Longitude: -46.7000,
 		},
 	}
 	if err := repository.Update(ctx, crime.ID, crimeAtualizada); err != nil {

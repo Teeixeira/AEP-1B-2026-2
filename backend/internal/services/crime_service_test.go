@@ -75,7 +75,8 @@ func TestCrimeService_Create(t *testing.T) {
 		Descricao: "carteira roubada",
 		DataHora:  "2026-08-28T12:00:00Z",
 		Localizacao: models.Localizacao{
-			Coordinates: []float64{-46.6333, -23.5505},
+			Latitude:  -23.5505,
+			Longitude: -46.6333,
 		},
 	}
 
@@ -84,8 +85,8 @@ func TestCrimeService_Create(t *testing.T) {
 			if crimeRecebido == nil {
 				t.Fatal("crime não pode ser nulo")
 			}
-			if crimeRecebido.Localizacao.Type != models.TipoPonto {
-				t.Fatalf("tipo de localização inesperado: %s", crimeRecebido.Localizacao.Type)
+			if crimeRecebido.Localizacao.Latitude != -23.5505 || crimeRecebido.Localizacao.Longitude != -46.6333 {
+				t.Fatalf("localização inesperada: %+v", crimeRecebido.Localizacao)
 			}
 			return nil
 		},
@@ -104,11 +105,9 @@ func TestCrimeService_Create_CamposObrigatorios(t *testing.T) {
 		nome  string
 		crime *models.Crime
 	}{
-		{"tipo vazio", &models.Crime{Descricao: "desc", DataHora: "2026-08-28T12:00:00Z", Localizacao: models.Localizacao{Coordinates: []float64{-46.63, -23.55}}}},
-		{"descricao vazia", &models.Crime{Tipo: "furto", DataHora: "2026-08-28T12:00:00Z", Localizacao: models.Localizacao{Coordinates: []float64{-46.63, -23.55}}}},
-		{"data_hora vazia", &models.Crime{Tipo: "furto", Descricao: "desc", Localizacao: models.Localizacao{Coordinates: []float64{-46.63, -23.55}}}},
-		{"sem coordenadas", &models.Crime{Tipo: "furto", Descricao: "desc", DataHora: "2026-08-28T12:00:00Z"}},
-		{"coordenadas incompletas", &models.Crime{Tipo: "furto", Descricao: "desc", DataHora: "2026-08-28T12:00:00Z", Localizacao: models.Localizacao{Coordinates: []float64{-46.63}}}},
+		{"tipo vazio", &models.Crime{Descricao: "desc", DataHora: "2026-08-28T12:00:00Z", Localizacao: models.Localizacao{Latitude: -23.55, Longitude: -46.63}}},
+		{"descricao vazia", &models.Crime{Tipo: "furto", DataHora: "2026-08-28T12:00:00Z", Localizacao: models.Localizacao{Latitude: -23.55, Longitude: -46.63}}},
+		{"data_hora vazia", &models.Crime{Tipo: "furto", Descricao: "desc", Localizacao: models.Localizacao{Latitude: -23.55, Longitude: -46.63}}},
 	}
 
 	for _, tt := range tests {
@@ -136,7 +135,7 @@ func TestCrimeService_Create_LatitudeInvalida(t *testing.T) {
 		t.Run(tt.nome, func(t *testing.T) {
 			crime := &models.Crime{
 				Tipo: "furto", Descricao: "desc", DataHora: "2026-08-28T12:00:00Z",
-				Localizacao: models.Localizacao{Coordinates: []float64{-46.63, tt.lat}},
+				Localizacao: models.Localizacao{Latitude: tt.lat, Longitude: -46.63},
 			}
 			err := service.Create(context.Background(), crime)
 			if !errors.Is(err, ErrLatitudeInvalida) {
@@ -161,7 +160,7 @@ func TestCrimeService_Create_LongitudeInvalida(t *testing.T) {
 		t.Run(tt.nome, func(t *testing.T) {
 			crime := &models.Crime{
 				Tipo: "furto", Descricao: "desc", DataHora: "2026-08-28T12:00:00Z",
-				Localizacao: models.Localizacao{Coordinates: []float64{tt.lng, -23.55}},
+				Localizacao: models.Localizacao{Latitude: -23.55, Longitude: tt.lng},
 			}
 			err := service.Create(context.Background(), crime)
 			if !errors.Is(err, ErrLongitudeInvalida) {
@@ -250,7 +249,8 @@ func TestCrimeService_Update(t *testing.T) {
 		Descricao: "atualizado",
 		DataHora:  "2026-08-28T13:30:00Z",
 		Localizacao: models.Localizacao{
-			Coordinates: []float64{-46.63, -23.54},
+			Latitude:  -23.54,
+			Longitude: -46.63,
 		},
 	}
 
@@ -259,8 +259,8 @@ func TestCrimeService_Update(t *testing.T) {
 			if idRecebido != id {
 				t.Fatalf("id inesperado: %s", idRecebido.Hex())
 			}
-			if crime.Localizacao.Type != models.TipoPonto {
-				t.Fatalf("tipo de localização inesperado: %s", crime.Localizacao.Type)
+			if crime.Localizacao.Latitude != -23.54 || crime.Localizacao.Longitude != -46.63 {
+				t.Fatalf("localização inesperada: %+v", crime.Localizacao)
 			}
 			return nil
 		},
@@ -298,7 +298,7 @@ func TestCrimeService_PropagaErros(t *testing.T) {
 		service := NewCrimeService(repository)
 		crime := &models.Crime{
 			Tipo: "furto", Descricao: "desc", DataHora: "2026-08-28T12:00:00Z",
-			Localizacao: models.Localizacao{Coordinates: []float64{-46.63, -23.55}},
+			Localizacao: models.Localizacao{Latitude: -23.55, Longitude: -46.63},
 		}
 		if err := service.Create(context.Background(), crime); !errors.Is(err, expectedErr) {
 			t.Fatalf("erro esperado %v, recebido %v", expectedErr, err)
@@ -326,7 +326,7 @@ func TestCrimeService_PropagaErros(t *testing.T) {
 		service := NewCrimeService(repository)
 		crime := models.Crime{
 			Tipo: "roubo", Descricao: "desc", DataHora: "2026-08-28T12:00:00Z",
-			Localizacao: models.Localizacao{Coordinates: []float64{-46.63, -23.55}},
+			Localizacao: models.Localizacao{Latitude: -23.55, Longitude: -46.63},
 		}
 		if err := service.Update(context.Background(), id, crime); !errors.Is(err, expectedErr) {
 			t.Fatalf("erro esperado %v, recebido %v", expectedErr, err)

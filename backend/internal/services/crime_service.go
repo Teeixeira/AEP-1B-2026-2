@@ -11,10 +11,10 @@ import (
 )
 
 var (
-	ErrRaioInvalido      = errors.New("raio de busca deve ser maior que zero")
-	ErrCamposObrigatorios = errors.New("campos obrigatórios não preenchidos: tipo, descricao, data_hora e coordenadas são necessários")
-	ErrLatitudeInvalida  = errors.New("latitude deve estar entre -90 e 90")
-	ErrLongitudeInvalida = errors.New("longitude deve estar entre -180 e 180")
+	ErrRaioInvalido       = errors.New("raio de busca deve ser maior que zero")
+	ErrCamposObrigatorios = errors.New("campos obrigatórios não preenchidos: tipo, descricao e data_hora são necessários")
+	ErrLatitudeInvalida   = errors.New("latitude deve estar entre -90 e 90")
+	ErrLongitudeInvalida  = errors.New("longitude deve estar entre -180 e 180")
 )
 
 type CrimeServiceInterface interface {
@@ -35,18 +35,17 @@ func NewCrimeService(repository repositories.CrimeRepositoryInterface) *CrimeSer
 }
 
 func validarCrime(crime *models.Crime) error {
-	if crime.Tipo == "" || crime.Descricao == "" || crime.DataHora == "" ||
-		len(crime.Localizacao.Coordinates) < 2 {
+	if crime.Tipo == "" || crime.Descricao == "" || crime.DataHora == "" {
 		return ErrCamposObrigatorios
 	}
 
-	longitude := crime.Localizacao.Coordinates[0]
-	latitude := crime.Localizacao.Coordinates[1]
+	lat := crime.Localizacao.Latitude
+	lng := crime.Localizacao.Longitude
 
-	if latitude < -90 || latitude > 90 {
+	if lat < -90 || lat > 90 {
 		return ErrLatitudeInvalida
 	}
-	if longitude < -180 || longitude > 180 {
+	if lng < -180 || lng > 180 {
 		return ErrLongitudeInvalida
 	}
 
@@ -60,7 +59,6 @@ func (service *CrimeService) Create(
 	if err := validarCrime(crime); err != nil {
 		return err
 	}
-	crime.Localizacao.Type = models.TipoPonto
 	return service.repository.Create(ctx, crime)
 }
 
@@ -95,7 +93,6 @@ func (service *CrimeService) Update(
 	if err := validarCrime(&crime); err != nil {
 		return err
 	}
-	crime.Localizacao.Type = models.TipoPonto
 	return service.repository.Update(ctx, id, crime)
 }
 

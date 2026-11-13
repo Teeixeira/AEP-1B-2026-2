@@ -70,7 +70,7 @@ func (s *stubCrimeService) Delete(ctx context.Context, id bson.ObjectID) error {
 func TestCrimeHandler_Create(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	payload := `{"tipo":"furto","descricao":"aparelho","data_hora":"2026-08-28T12:00:00Z","localizacao":{"type":"Point","coordinates":[-46.6333,-23.5505]}}`
+	payload := `{"tipo":"furto","descricao":"aparelho","data_hora":"2026-08-28T12:00:00Z","localizacao":{"latitude":-23.5505,"longitude":-46.6333}}`
 	service := &stubCrimeService{
 		createFn: func(ctx context.Context, crime *models.Crime) error {
 			if crime == nil {
@@ -126,7 +126,7 @@ func TestCrimeHandler_Create_CamposIncompletos(t *testing.T) {
 	}})
 	rec := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(rec)
-	payload := `{"tipo":"furto","localizacao":{"coordinates":[-46.63,-23.55]}}`
+	payload := `{"tipo":"furto","localizacao":{"latitude":-23.55,"longitude":-46.63}}`
 	ctx.Request = httptest.NewRequest(http.MethodPost, "/crimes", strings.NewReader(payload))
 	ctx.Request.Header.Set("Content-Type", "application/json")
 
@@ -144,7 +144,7 @@ func TestCrimeHandler_Create_CoordenadaInvalida(t *testing.T) {
 	}})
 	rec := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(rec)
-	payload := `{"tipo":"furto","descricao":"desc","data_hora":"2026-08-28T12:00:00Z","localizacao":{"coordinates":[-46.63,-91]}}`
+	payload := `{"tipo":"furto","descricao":"desc","data_hora":"2026-08-28T12:00:00Z","localizacao":{"latitude":-95,"longitude":-46.63}}`
 	ctx.Request = httptest.NewRequest(http.MethodPost, "/crimes", strings.NewReader(payload))
 	ctx.Request.Header.Set("Content-Type", "application/json")
 
@@ -278,13 +278,16 @@ func TestCrimeHandler_FindNear_InvalidRadius(t *testing.T) {
 func TestCrimeHandler_Update(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	id := bson.NewObjectID()
-	payload := `{"tipo":"assalto","descricao":"atualizado","data_hora":"2026-08-28T15:00:00Z","localizacao":{"type":"Point","coordinates":[-46.60,-23.59]}}`
+	payload := `{"tipo":"assalto","descricao":"atualizado","data_hora":"2026-08-28T15:00:00Z","localizacao":{"latitude":-23.59,"longitude":-46.60}}`
 	handler := NewCrimeHandler(&stubCrimeService{updateFn: func(ctx context.Context, idRecebido bson.ObjectID, crime models.Crime) error {
 		if idRecebido != id {
 			t.Fatalf("id inesperado: %s", idRecebido.Hex())
 		}
 		if crime.Tipo != "assalto" {
 			t.Fatalf("tipo inesperado: %s", crime.Tipo)
+		}
+		if crime.Localizacao.Latitude != -23.59 || crime.Localizacao.Longitude != -46.60 {
+			t.Fatalf("localizacao inesperada: %+v", crime.Localizacao)
 		}
 		return nil
 	}})
@@ -319,5 +322,67 @@ func TestCrimeHandler_Delete(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status inesperado: %d", rec.Code)
+	}
+}
+
+func TestCrimeHandler_ErrorStructure(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := NewCrimeHandler(&stubCrimeService{})
+
+	// 1. Entrada inválida (HTTP 400)
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+	ctx.Request = httptest.NewRequest(http.MethodGet, "/crimes/id-invalido", nil)
+	ctx.Params = gin.Params{{Key: "id", Value: "id-invalido"}}
+	handler.FindByID(ctx)
+
+	var errResp ErroResposta
+	if err := json.Unmarshal(rec.Body.Bytes(), &errResp); err != nil {
+		t.Fatalf("falha ao decodificar erro: %v", err)
+	}
+	if errResp.Codigo != CodigoEntradaInvalida {
+		t.Fatalf("código esperado %s, recebido %s", CodigoEntradaInvalida, errResp.Codigo)
+	}
+	if errResp.Mensagem != "ID Inválido" {
+		t.Fatalf("mensagem inesperada: %s", errResp.Mensagem)
+	}
+
+	// 2. Registro não encontrado (HTTP 404)
+	handlerNotFound := NewCrimeHandler(&stubCrimeService{findByIDFn: func(ctx context.Context, id bson.ObjectID) (*models.Crime, error) {
+		return nil, errors.New("not found")
+	}})
+	rec404 := httptest.NewRecorder()
+	ctx404, _ := gin.CreateTestContext(rec404)
+	validID := bson.NewObjectID()
+	ctx404.Request = httptest.NewRequest(http.MethodGet, "/crimes/"+validID.Hex(), nil)
+	ctx404.Params = gin.Params{{Key: "id", Value: validID.Hex()}}
+	handlerNotFound.FindByID(ctx404)
+
+	var errResp404 ErroResposta
+	if err := json.Unmarshal(rec404.Body.Bytes(), &errResp404); err != nil {
+		t.Fatalf("falha ao decodificar erro: %v", err)
+	}
+	if errResp404.Codigo != CodigoRegistroNaoEncontrado {
+		t.Fatalf("código esperado %s, recebido %s", CodigoRegistroNaoEncontrado, errResp404.Codigo)
+	}
+	if errResp404.Mensagem != "Crime não encontrado" {
+		t.Fatalf("mensagem inesperada: %s", errResp404.Mensagem)
+	}
+
+	// 3. Falha interna (HTTP 500)
+	handler500 := NewCrimeHandler(&stubCrimeService{findAllFn: func(ctx context.Context) ([]models.Crime, error) {
+		return nil, errors.New("banco offline")
+	}})
+	rec500 := httptest.NewRecorder()
+	ctx500, _ := gin.CreateTestContext(rec500)
+	ctx500.Request = httptest.NewRequest(http.MethodGet, "/crimes", nil)
+	handler500.FindAll(ctx500)
+
+	var errResp500 ErroResposta
+	if err := json.Unmarshal(rec500.Body.Bytes(), &errResp500); err != nil {
+		t.Fatalf("falha ao decodificar erro: %v", err)
+	}
+	if errResp500.Codigo != CodigoFalhaInterna {
+		t.Fatalf("código esperado %s, recebido %s", CodigoFalhaInterna, errResp500.Codigo)
 	}
 }
