@@ -21,6 +21,8 @@ export function setupMap(element) {
     const status = document.querySelector('#search-status');
     let userMarker;
     let location;
+    let radiusCircle;
+    let radiusTimeout;
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -42,6 +44,22 @@ export function setupMap(element) {
         form.setAttribute('aria-busy', String(busy));
     }
 
+    function showRadius(radiusInMeters) {
+        clearTimeout(radiusTimeout);
+        if (radiusCircle) radiusCircle.remove();
+
+        radiusCircle = L.circle([location.lat, location.lng], {
+            radius: radiusInMeters,
+            color: '#0071e3',
+            weight: 1.5,
+            fillOpacity: 0.12,
+            interactive: false
+        }).addTo(map);
+        radiusCircle.bringToBack();
+        map.fitBounds(radiusCircle.getBounds(), { padding: [32, 32], maxZoom: 16 });
+        radiusTimeout = setTimeout(() => radiusCircle.remove(), 2500);
+    }
+
     async function searchCrimes() {
         const radiusKm = Number(radiusInput.value);
         const radiusInMeters = radiusKm * 1000;
@@ -58,6 +76,7 @@ export function setupMap(element) {
         }
 
         setBusy(true);
+        showRadius(radiusInMeters);
         showStatus('Carregando ocorrências...', 'loading');
 
         try {
@@ -66,10 +85,6 @@ export function setupMap(element) {
             if (count === 0) {
                 showStatus(`Nenhuma ocorrência encontrada em um raio de ${distance} km. Tente aumentar a distância.`, 'empty');
             } else {
-                map.fitBounds(points.getBounds().extend([location.lat, location.lng]), {
-                    padding: [32, 32],
-                    maxZoom: 15
-                });
                 const result = count === 1 ? '1 ocorrência encontrada' : `${count} ocorrências encontradas`;
                 showStatus(`${result} em um raio de ${distance} km.`, 'success');
             }
