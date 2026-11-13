@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"AEP-1B-2026-2/internal/models"
 	"AEP-1B-2026-2/internal/services"
@@ -29,13 +30,13 @@ func NewCrimeHandler(service services.CrimeServiceInterface) *CrimeHandler {
 // @Produce json
 // @Param crime body models.Crime true "Dados do crime"
 // @Success 201 {object} models.Crime
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} ErroResposta
+// @Failure 500 {object} ErroResposta
 // @Router /crimes [post]
 func (handler *CrimeHandler) Create(c *gin.Context) {
 	var crime models.Crime
 	if err := c.ShouldBindJSON(&crime); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"erro": "JSON Inválido", "details": err.Error()})
+		RespostaEntradaInvalida(c, "JSON Inválido", err.Error())
 		return
 	}
 
@@ -43,10 +44,10 @@ func (handler *CrimeHandler) Create(c *gin.Context) {
 		if errors.Is(err, services.ErrCamposObrigatorios) ||
 			errors.Is(err, services.ErrLatitudeInvalida) ||
 			errors.Is(err, services.ErrLongitudeInvalida) {
-			c.JSON(http.StatusBadRequest, gin.H{"erro": err.Error()})
+			RespostaEntradaInvalida(c, err.Error())
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"erro": "Erro ao criar crime"})
+		RespostaFalhaInterna(c, "Erro ao criar crime", err.Error())
 		return
 	}
 
@@ -59,12 +60,12 @@ func (handler *CrimeHandler) Create(c *gin.Context) {
 // @Tags crimes
 // @Produce json
 // @Success 200 {array} models.Crime
-// @Failure 500 {object} map[string]string
+// @Failure 500 {object} ErroResposta
 // @Router /crimes [get]
 func (handler *CrimeHandler) FindAll(c *gin.Context) {
 	crimes, err := handler.service.FindAll(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"erro": "Erro ao buscar crimes"})
+		RespostaFalhaInterna(c, "Erro ao buscar crimes", err.Error())
 		return
 	}
 
@@ -78,19 +79,19 @@ func (handler *CrimeHandler) FindAll(c *gin.Context) {
 // @Produce json
 // @Param id path string true "ID do crime"
 // @Success 200 {object} models.Crime
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 400 {object} ErroResposta
+// @Failure 404 {object} ErroResposta
 // @Router /crimes/{id} [get]
 func (handler *CrimeHandler) FindByID(c *gin.Context) {
 	objectID, err := bson.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"erro": "ID Inválido"})
+		RespostaEntradaInvalida(c, "ID Inválido")
 		return
 	}
 
 	crime, err := handler.service.FindByID(c.Request.Context(), objectID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"erro": "Crime não encontrado"})
+		RespostaNaoEncontrado(c, "Crime não encontrado")
 		return
 	}
 
@@ -105,26 +106,41 @@ func (handler *CrimeHandler) FindByID(c *gin.Context) {
 // @Param lat query number true "Latitude"
 // @Param lng query number true "Longitude"
 // @Param raio query number false "Raio em metros" default(1000)
+// @Param tipo query string false "Tipo de crime"
+// @Param data_inicio query string false "Início do período (RFC3339)"
+// @Param data_fim query string false "Fim do período (RFC3339)"
 // @Success 200 {array} models.Crime
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} ErroResposta
+// @Failure 500 {object} ErroResposta
 // @Router /crimes/proximos [get]
 func (handler *CrimeHandler) FindNear(c *gin.Context) {
 	lat, err := strconv.ParseFloat(c.Query("lat"), 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"erro": "Parâmetro 'lat' inválido"})
+		RespostaEntradaInvalida(c, "Parâmetro 'lat' inválido")
 		return
 	}
 
 	lng, err := strconv.ParseFloat(c.Query("lng"), 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"erro": "Parâmetro 'lng' inválido"})
+		RespostaEntradaInvalida(c, "Parâmetro 'lng' inválido")
 		return
 	}
 
 	raio, err := strconv.ParseFloat(c.DefaultQuery("raio", "1000"), 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"erro": "Parâmetro 'raio' inválido"})
+		RespostaEntradaInvalida(c, "Parâmetro 'raio' inválido")
+		return
+	}
+
+	tipo := c.Query("tipo")
+	dataInicio, err := parseOptionalDateTime(c.Query("data_inicio"))
+	if err != nil {
+		RespostaEntradaInvalida(c, "Parâmetro 'data_inicio' inválido; use RFC3339")
+		return
+	}
+	dataFim, err := parseOptionalDateTime(c.Query("data_fim"))
+	if err != nil {
+		RespostaEntradaInvalida(c, "Parâmetro 'data_fim' inválido; use RFC3339")
 		return
 	}
 
@@ -133,22 +149,30 @@ func (handler *CrimeHandler) FindNear(c *gin.Context) {
 		lng,
 		lat,
 		raio,
+		tipo,
+		dataInicio,
+		dataFim,
 	)
 
 	if err != nil {
-		if errors.Is(err, services.ErrRaioInvalido) {
-			c.JSON(http.StatusBadRequest, gin.H{"erro": err.Error()})
+		if errors.Is(err, services.ErrRaioInvalido) ||
+			errors.Is(err, services.ErrPeriodoInvalido) {
+			RespostaEntradaInvalida(c, err.Error())
 			return
 		}
 
-		c.JSON(
-			http.StatusInternalServerError,
-			gin.H{"erro": "Erro ao buscar crimes próximos"},
-		)
+		RespostaFalhaInterna(c, "Erro ao buscar crimes próximos", err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, crimes)
+}
+
+func parseOptionalDateTime(value string) (time.Time, error) {
+	if value == "" {
+		return time.Time{}, nil
+	}
+	return time.Parse(time.RFC3339, value)
 }
 
 // Update godoc
@@ -160,20 +184,20 @@ func (handler *CrimeHandler) FindNear(c *gin.Context) {
 // @Param id path string true "ID do crime"
 // @Param crime body models.Crime true "Dados atualizados do crime"
 // @Success 200 {object} models.Crime
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} ErroResposta
+// @Failure 404 {object} ErroResposta
+// @Failure 500 {object} ErroResposta
 // @Router /crimes/{id} [put]
 func (handler *CrimeHandler) Update(c *gin.Context) {
 	objectID, err := bson.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"erro": "ID Inválido"})
+		RespostaEntradaInvalida(c, "ID Inválido")
 		return
 	}
 
 	var crime models.Crime
 	if err := c.ShouldBindJSON(&crime); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"erro": "JSON Inválido"})
+		RespostaEntradaInvalida(c, "JSON Inválido", err.Error())
 		return
 	}
 
@@ -187,18 +211,15 @@ func (handler *CrimeHandler) Update(c *gin.Context) {
 		if errors.Is(err, services.ErrCamposObrigatorios) ||
 			errors.Is(err, services.ErrLatitudeInvalida) ||
 			errors.Is(err, services.ErrLongitudeInvalida) {
-			c.JSON(http.StatusBadRequest, gin.H{"erro": err.Error()})
+			RespostaEntradaInvalida(c, err.Error())
 			return
 		}
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			c.JSON(http.StatusNotFound, gin.H{"erro": "Crime não encontrado"})
+			RespostaNaoEncontrado(c, "Crime não encontrado")
 			return
 		}
 
-		c.JSON(
-			http.StatusInternalServerError,
-			gin.H{"erro": "Erro ao atualizar crime"},
-		)
+		RespostaFalhaInterna(c, "Erro ao atualizar crime", err.Error())
 		return
 	}
 
@@ -213,14 +234,14 @@ func (handler *CrimeHandler) Update(c *gin.Context) {
 // @Produce json
 // @Param id path string true "ID do crime"
 // @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} ErroResposta
+// @Failure 404 {object} ErroResposta
+// @Failure 500 {object} ErroResposta
 // @Router /crimes/{id} [delete]
 func (handler *CrimeHandler) Delete(c *gin.Context) {
 	objectID, err := bson.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"erro": "ID inválido"})
+		RespostaEntradaInvalida(c, "ID inválido")
 		return
 	}
 
@@ -231,14 +252,11 @@ func (handler *CrimeHandler) Delete(c *gin.Context) {
 
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			c.JSON(http.StatusNotFound, gin.H{"erro": "Crime não encontrado"})
+			RespostaNaoEncontrado(c, "Crime não encontrado")
 			return
 		}
 
-		c.JSON(
-			http.StatusInternalServerError,
-			gin.H{"erro": "Erro ao excluir crime"},
-		)
+		RespostaFalhaInterna(c, "Erro ao excluir crime", err.Error())
 		return
 	}
 

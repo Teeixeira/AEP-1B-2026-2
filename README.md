@@ -50,6 +50,23 @@ Para desenvolvimento local sem Docker, instale também:
 
 A API está disponível em [http://localhost:8080](http://localhost:8080), e sua documentação Swagger está disponível em [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html).
 
+### Executar migrations pelo Docker
+
+Na raiz do repositório, com `backend/.env` configurado, compile a imagem do backend e execute as migrations pendentes:
+
+```powershell
+docker compose build backend
+docker compose run --rm backend ./server -migrate-only
+```
+
+O comando `docker compose run` utiliza as variáveis de `backend/.env` definidas no serviço `backend` e inicia o serviço `mongo` como dependência, se necessário. Para reverter a última migration:
+
+```powershell
+docker compose run --rm backend ./server -migrate-down
+```
+
+Esses comandos executam o backend em um contêiner temporário e não iniciam a API.
+
 Para interromper os serviços, pressione `Ctrl+C` ou execute:
 
 ```powershell
@@ -93,8 +110,10 @@ O servidor de desenvolvimento do Vite normalmente é executado em [http://localh
 A API está agrupada em `/api` e atualmente fornece:
 
 - `GET`, `POST`, `PUT` e `DELETE` `/api/crimes`
-- `GET` `/api/crimes/proximos?lat={latitude}&lng={longitude}&raio={meters}`
+- `GET` `/api/crimes/proximos?lat={latitude}&lng={longitude}&raio={meters}&tipo={type}&data_inicio={RFC3339}&data_fim={RFC3339}`
 - `GET`, `POST`, `PUT` e `DELETE` `/api/usuarios`
+
+Os filtros `tipo`, `data_inicio` e `data_fim` são opcionais. As datas devem estar no formato RFC3339, por exemplo `2026-08-28T12:00:00Z`.
 
 Utilize o Swagger para consultar os esquemas completos de requisição e resposta.
 

@@ -128,6 +128,24 @@ const docTemplate = `{
                         "description": "Raio em metros",
                         "name": "raio",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Tipo de crime",
+                        "name": "tipo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Início do período (RFC3339)",
+                        "name": "data_inicio",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fim do período (RFC3339)",
+                        "name": "data_fim",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -589,7 +607,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "data_hora": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "date-time"
                 },
                 "descricao": {
                     "type": "string"

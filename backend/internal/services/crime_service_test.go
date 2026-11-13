@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"AEP-1B-2026-2/internal/models"
 
@@ -14,7 +15,7 @@ type stubCrimeRepository struct {
 	createFn   func(ctx context.Context, crime *models.Crime) error
 	findAllFn  func(ctx context.Context) ([]models.Crime, error)
 	findByIDFn func(ctx context.Context, id bson.ObjectID) (*models.Crime, error)
-	findNearFn func(ctx context.Context, longitude float64, latitude float64, raioMetros float64) ([]models.Crime, error)
+	findNearFn func(ctx context.Context, longitude, latitude, raioMetros float64, tipo string, dataInicio, dataFim time.Time) ([]models.Crime, error)
 	updateFn   func(ctx context.Context, id bson.ObjectID, crime models.Crime) error
 	deleteFn   func(ctx context.Context, id bson.ObjectID) error
 	ensureFn   func(ctx context.Context) error
@@ -48,11 +49,15 @@ func (s *stubCrimeRepository) FindByID(ctx context.Context, id bson.ObjectID) (*
 	return nil, nil
 }
 
-func (s *stubCrimeRepository) FindNear(ctx context.Context, longitude float64, latitude float64, raioMetros float64) ([]models.Crime, error) {
+func (s *stubCrimeRepository) FindNear(ctx context.Context, longitude, latitude, raioMetros float64, tipo string, dataInicio, dataFim time.Time) ([]models.Crime, error) {
 	if s.findNearFn != nil {
-		return s.findNearFn(ctx, longitude, latitude, raioMetros)
+		return s.findNearFn(ctx, longitude, latitude, raioMetros, tipo, dataInicio, dataFim)
 	}
 	return nil, nil
+}
+
+func testCrimeDate() time.Time {
+	return time.Date(2026, time.August, 28, 12, 0, 0, 0, time.UTC)
 }
 
 func (s *stubCrimeRepository) Update(ctx context.Context, id bson.ObjectID, crime models.Crime) error {
@@ -73,9 +78,10 @@ func TestCrimeService_Create(t *testing.T) {
 	crime := &models.Crime{
 		Tipo:      "furto",
 		Descricao: "carteira roubada",
-		DataHora:  "2026-08-28T12:00:00Z",
+		DataHora:  testCrimeDate(),
 		Localizacao: models.Localizacao{
-			Coordinates: []float64{-46.6333, -23.5505},
+			Latitude:  -23.5505,
+			Longitude: -46.6333,
 		},
 	}
 
@@ -84,8 +90,8 @@ func TestCrimeService_Create(t *testing.T) {
 			if crimeRecebido == nil {
 				t.Fatal("crime não pode ser nulo")
 			}
-			if crimeRecebido.Localizacao.Type != models.TipoPonto {
-				t.Fatalf("tipo de localização inesperado: %s", crimeRecebido.Localizacao.Type)
+			if crimeRecebido.Localizacao.Latitude != -23.5505 || crimeRecebido.Localizacao.Longitude != -46.6333 {
+				t.Fatalf("localização inesperada: %+v", crimeRecebido.Localizacao)
 			}
 			return nil
 		},
@@ -104,11 +110,9 @@ func TestCrimeService_Create_CamposObrigatorios(t *testing.T) {
 		nome  string
 		crime *models.Crime
 	}{
-		{"tipo vazio", &models.Crime{Descricao: "desc", DataHora: "2026-08-28T12:00:00Z", Localizacao: models.Localizacao{Coordinates: []float64{-46.63, -23.55}}}},
-		{"descricao vazia", &models.Crime{Tipo: "furto", DataHora: "2026-08-28T12:00:00Z", Localizacao: models.Localizacao{Coordinates: []float64{-46.63, -23.55}}}},
-		{"data_hora vazia", &models.Crime{Tipo: "furto", Descricao: "desc", Localizacao: models.Localizacao{Coordinates: []float64{-46.63, -23.55}}}},
-		{"sem coordenadas", &models.Crime{Tipo: "furto", Descricao: "desc", DataHora: "2026-08-28T12:00:00Z"}},
-		{"coordenadas incompletas", &models.Crime{Tipo: "furto", Descricao: "desc", DataHora: "2026-08-28T12:00:00Z", Localizacao: models.Localizacao{Coordinates: []float64{-46.63}}}},
+		{"tipo vazio", &models.Crime{Descricao: "desc", DataHora: testCrimeDate(), Localizacao: models.Localizacao{Latitude: -23.55, Longitude: -46.63}}},
+		{"descricao vazia", &models.Crime{Tipo: "furto", DataHora: testCrimeDate(), Localizacao: models.Localizacao{Latitude: -23.55, Longitude: -46.63}}},
+		{"data_hora vazia", &models.Crime{Tipo: "furto", Descricao: "desc", Localizacao: models.Localizacao{Latitude: -23.55, Longitude: -46.63}}},
 	}
 
 	for _, tt := range tests {
@@ -135,8 +139,8 @@ func TestCrimeService_Create_LatitudeInvalida(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.nome, func(t *testing.T) {
 			crime := &models.Crime{
-				Tipo: "furto", Descricao: "desc", DataHora: "2026-08-28T12:00:00Z",
-				Localizacao: models.Localizacao{Coordinates: []float64{-46.63, tt.lat}},
+				Tipo: "furto", Descricao: "desc", DataHora: testCrimeDate(),
+				Localizacao: models.Localizacao{Latitude: tt.lat, Longitude: -46.63},
 			}
 			err := service.Create(context.Background(), crime)
 			if !errors.Is(err, ErrLatitudeInvalida) {
@@ -160,8 +164,8 @@ func TestCrimeService_Create_LongitudeInvalida(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.nome, func(t *testing.T) {
 			crime := &models.Crime{
-				Tipo: "furto", Descricao: "desc", DataHora: "2026-08-28T12:00:00Z",
-				Localizacao: models.Localizacao{Coordinates: []float64{tt.lng, -23.55}},
+				Tipo: "furto", Descricao: "desc", DataHora: testCrimeDate(),
+				Localizacao: models.Localizacao{Latitude: -23.55, Longitude: tt.lng},
 			}
 			err := service.Create(context.Background(), crime)
 			if !errors.Is(err, ErrLongitudeInvalida) {
@@ -213,17 +217,20 @@ func TestCrimeService_FindByID(t *testing.T) {
 
 func TestCrimeService_FindNear(t *testing.T) {
 	crimesEsperados := []models.Crime{{Tipo: "roubo"}}
+	dataInicio := testCrimeDate()
+	dataFim := dataInicio.Add(time.Hour)
 	repository := &stubCrimeRepository{
-		findNearFn: func(ctx context.Context, longitude float64, latitude float64, raioMetros float64) ([]models.Crime, error) {
-			if longitude != -46.63 || latitude != -23.55 || raioMetros != 500 {
-				t.Fatalf("parametros inesperados: lon=%.2f lat=%.2f raio=%.2f", longitude, latitude, raioMetros)
+		findNearFn: func(ctx context.Context, longitude, latitude, raioMetros float64, tipo string, inicio, fim time.Time) ([]models.Crime, error) {
+			if longitude != -46.63 || latitude != -23.55 || raioMetros != 500 || tipo != "roubo" ||
+				!inicio.Equal(dataInicio) || !fim.Equal(dataFim) {
+				t.Fatalf("parâmetros inesperados: lon=%.2f lat=%.2f raio=%.2f tipo=%q início=%v fim=%v", longitude, latitude, raioMetros, tipo, inicio, fim)
 			}
 			return crimesEsperados, nil
 		},
 	}
 
 	service := NewCrimeService(repository)
-	result, err := service.FindNear(context.Background(), -46.63, -23.55, 500)
+	result, err := service.FindNear(context.Background(), -46.63, -23.55, 500, "roubo", dataInicio, dataFim)
 	if err != nil {
 		t.Fatalf("FindNear() retornou erro: %v", err)
 	}
@@ -234,9 +241,27 @@ func TestCrimeService_FindNear(t *testing.T) {
 
 func TestCrimeService_FindNear_ValidaRaio(t *testing.T) {
 	service := NewCrimeService(&stubCrimeRepository{})
-	result, err := service.FindNear(context.Background(), -46.63, -23.55, 0)
+	result, err := service.FindNear(context.Background(), -46.63, -23.55, 0, "", time.Time{}, time.Time{})
 	if !errors.Is(err, ErrRaioInvalido) {
 		t.Fatalf("erro esperado: %v, recebido: %v", ErrRaioInvalido, err)
+	}
+	if result != nil {
+		t.Fatalf("resultado esperado nulo, recebido: %#v", result)
+	}
+}
+
+func TestCrimeService_FindNear_ValidaPeriodo(t *testing.T) {
+	repository := &stubCrimeRepository{
+		findNearFn: func(context.Context, float64, float64, float64, string, time.Time, time.Time) ([]models.Crime, error) {
+			t.Fatal("repository não deveria ser chamada para período inválido")
+			return nil, nil
+		},
+	}
+	service := NewCrimeService(repository)
+
+	result, err := service.FindNear(context.Background(), -46.63, -23.55, 500, "", testCrimeDate().Add(time.Hour), testCrimeDate())
+	if !errors.Is(err, ErrPeriodoInvalido) {
+		t.Fatalf("erro esperado: %v, recebido: %v", ErrPeriodoInvalido, err)
 	}
 	if result != nil {
 		t.Fatalf("resultado esperado nulo, recebido: %#v", result)
@@ -248,9 +273,10 @@ func TestCrimeService_Update(t *testing.T) {
 	crimeAtualizada := models.Crime{
 		Tipo:      "furto",
 		Descricao: "atualizado",
-		DataHora:  "2026-08-28T13:30:00Z",
+		DataHora:  testCrimeDate().Add(90 * time.Minute),
 		Localizacao: models.Localizacao{
-			Coordinates: []float64{-46.63, -23.54},
+			Latitude:  -23.54,
+			Longitude: -46.63,
 		},
 	}
 
@@ -259,8 +285,8 @@ func TestCrimeService_Update(t *testing.T) {
 			if idRecebido != id {
 				t.Fatalf("id inesperado: %s", idRecebido.Hex())
 			}
-			if crime.Localizacao.Type != models.TipoPonto {
-				t.Fatalf("tipo de localização inesperado: %s", crime.Localizacao.Type)
+			if crime.Localizacao.Latitude != -23.54 || crime.Localizacao.Longitude != -46.63 {
+				t.Fatalf("localização inesperada: %+v", crime.Localizacao)
 			}
 			return nil
 		},
@@ -297,8 +323,8 @@ func TestCrimeService_PropagaErros(t *testing.T) {
 		repository := &stubCrimeRepository{createFn: func(ctx context.Context, crime *models.Crime) error { return expectedErr }}
 		service := NewCrimeService(repository)
 		crime := &models.Crime{
-			Tipo: "furto", Descricao: "desc", DataHora: "2026-08-28T12:00:00Z",
-			Localizacao: models.Localizacao{Coordinates: []float64{-46.63, -23.55}},
+			Tipo: "furto", Descricao: "desc", DataHora: testCrimeDate(),
+			Localizacao: models.Localizacao{Latitude: -23.55, Longitude: -46.63},
 		}
 		if err := service.Create(context.Background(), crime); !errors.Is(err, expectedErr) {
 			t.Fatalf("erro esperado %v, recebido %v", expectedErr, err)
@@ -325,8 +351,8 @@ func TestCrimeService_PropagaErros(t *testing.T) {
 		repository := &stubCrimeRepository{updateFn: func(ctx context.Context, id bson.ObjectID, crime models.Crime) error { return expectedErr }}
 		service := NewCrimeService(repository)
 		crime := models.Crime{
-			Tipo: "roubo", Descricao: "desc", DataHora: "2026-08-28T12:00:00Z",
-			Localizacao: models.Localizacao{Coordinates: []float64{-46.63, -23.55}},
+			Tipo: "roubo", Descricao: "desc", DataHora: testCrimeDate(),
+			Localizacao: models.Localizacao{Latitude: -23.55, Longitude: -46.63},
 		}
 		if err := service.Update(context.Background(), id, crime); !errors.Is(err, expectedErr) {
 			t.Fatalf("erro esperado %v, recebido %v", expectedErr, err)

@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"AEP-1B-2026-2/internal/models"
 
@@ -15,7 +16,7 @@ type CrimeRepositoryInterface interface {
 	Create(ctx context.Context, crime *models.Crime) error
 	FindAll(ctx context.Context) ([]models.Crime, error)
 	FindByID(ctx context.Context, id bson.ObjectID) (*models.Crime, error)
-	FindNear(ctx context.Context, longitude float64, latitude float64, raioMetros float64) ([]models.Crime, error)
+	FindNear(ctx context.Context, longitude, latitude, raioMetros float64, tipo string, dataInicio, dataFim time.Time) ([]models.Crime, error)
 	Update(ctx context.Context, id bson.ObjectID, crime models.Crime) error
 	Delete(ctx context.Context, id bson.ObjectID) error
 }
@@ -86,18 +87,11 @@ func (repository *CrimeRepository) FindNear(
 	longitude float64,
 	latitude float64,
 	raioMetros float64,
+	tipo string,
+	dataInicio time.Time,
+	dataFim time.Time,
 ) ([]models.Crime, error) {
-	filter := bson.M{
-		"localizacao": bson.M{
-			"$near": bson.M{
-				"$geometry": bson.M{
-					"type":        models.TipoPonto,
-					"coordinates": []float64{longitude, latitude},
-				},
-				"$maxDistance": raioMetros,
-			},
-		},
-	}
+	filter := buildNearFilter(longitude, latitude, raioMetros, tipo, dataInicio, dataFim)
 
 	cursor, err := repository.collection.Find(ctx, filter)
 	if err != nil {
@@ -112,6 +106,40 @@ func (repository *CrimeRepository) FindNear(
 	return crimes, nil
 }
 
+func buildNearFilter(
+	longitude, latitude, raioMetros float64,
+	tipo string,
+	dataInicio, dataFim time.Time,
+) bson.M {
+	filter := bson.M{
+		"localizacao": bson.M{
+			"$near": bson.M{
+				"$geometry": bson.M{
+					"type":        "Point",
+					"coordinates": []float64{longitude, latitude},
+				},
+				"$maxDistance": raioMetros,
+			},
+		},
+	}
+
+	if tipo != "" {
+		filter["tipo"] = tipo
+	}
+
+	dataFilter := bson.M{}
+	if !dataInicio.IsZero() {
+		dataFilter["$gte"] = dataInicio
+	}
+	if !dataFim.IsZero() {
+		dataFilter["$lte"] = dataFim
+	}
+	if len(dataFilter) > 0 {
+		filter["data_hora"] = dataFilter
+	}
+	return filter
+}
+
 func (repository *CrimeRepository) Update(
 	ctx context.Context,
 	id bson.ObjectID,
@@ -123,6 +151,9 @@ func (repository *CrimeRepository) Update(
 			"descricao":   crime.Descricao,
 			"data_hora":   crime.DataHora,
 			"localizacao": crime.Localizacao,
+		},
+		"$unset": bson.M{
+			"localizacao_geo": "",
 		},
 	}
 	result, err := repository.collection.UpdateOne(ctx, bson.M{"_id": id}, update)
