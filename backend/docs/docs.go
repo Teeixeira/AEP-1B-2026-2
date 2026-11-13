@@ -3,17 +3,16 @@ package docs
 
 import "github.com/swaggo/swag"
 
-const docTemplate = `{
-    "schemes": {{ marshal .Schemes }},
+const docTemplate = `
+{
     "swagger": "2.0",
     "info": {
-        "description": "{{escape .Description}}",
-        "title": "{{.Title}}",
+        "description": "API do projeto AEP para consulta e gerenciamento de ocorrências criminais e usuários.",
+        "title": "AEP API",
         "contact": {},
-        "version": "{{.Version}}"
+        "version": "1.0"
     },
-    "host": "{{.Host}}",
-    "basePath": "{{.BasePath}}",
+    "basePath": "/api",
     "paths": {
         "/crimes": {
             "get": {
@@ -38,10 +37,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -79,19 +75,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -125,7 +115,7 @@ const docTemplate = `{
                     {
                         "type": "number",
                         "default": 1000,
-                        "description": "Raio em metros",
+                        "description": "Raio de busca em metros",
                         "name": "raio",
                         "in": "query"
                     },
@@ -137,13 +127,13 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Início do período (RFC3339)",
+                        "description": "Início do período, em RFC3339",
                         "name": "data_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fim do período (RFC3339)",
+                        "description": "Fim do período, em RFC3339",
                         "name": "data_fim",
                         "in": "query"
                     }
@@ -161,19 +151,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -208,19 +192,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -265,28 +243,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -322,28 +291,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -372,10 +332,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -413,19 +370,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -460,19 +411,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -517,28 +462,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -574,28 +510,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -608,7 +535,8 @@ const docTemplate = `{
             "properties": {
                 "data_hora": {
                     "type": "string",
-                    "format": "date-time"
+                    "format": "date-time",
+                    "description": "Data e hora da ocorrência em RFC3339."
                 },
                 "descricao": {
                     "type": "string"
@@ -627,14 +555,13 @@ const docTemplate = `{
         "models.Localizacao": {
             "type": "object",
             "properties": {
-                "coordinates": {
-                    "type": "array",
-                    "items": {
-                        "type": "number"
-                    }
+                "latitude": {
+                    "description": "Latitude em graus decimais, entre -90 e 90.",
+                    "type": "number"
                 },
-                "type": {
-                    "type": "string"
+                "longitude": {
+                    "description": "Longitude em graus decimais, entre -180 e 180.",
+                    "type": "number"
                 }
             }
         },
@@ -657,9 +584,28 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "handlers.ErroResposta": {
+            "type": "object",
+            "properties": {
+                "codigo": {
+                    "type": "string"
+                },
+                "mensagem": {
+                    "type": "string"
+                },
+                "detalhes": {
+                    "type": "string"
+                },
+                "erro": {
+                    "type": "string",
+                    "description": "Campo legado mantido para compatibilidade."
+                }
+            }
         }
     }
-}`
+}
+`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
@@ -668,7 +614,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/api",
 	Schemes:          []string{},
 	Title:            "AEP API",
-	Description:      "API for the AEP project.",
+	Description:      "API do projeto AEP para consulta e gerenciamento de ocorrências criminais e usuários.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

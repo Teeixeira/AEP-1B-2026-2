@@ -25,7 +25,7 @@ import (
 
 // @title AEP API
 // @version 1.0
-// @description API for the AEP project.
+// @description API do projeto AEP para consulta e gerenciamento de ocorrências criminais e usuários.
 // @BasePath /api
 func main() {
 	migrateDown := flag.Bool("migrate-down", false, "Reverte a última migração aplicada e encerra")

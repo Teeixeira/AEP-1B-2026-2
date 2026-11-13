@@ -1,7 +1,7 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "API for the AEP project.",
+        "description": "API do projeto AEP para consulta e gerenciamento de ocorrências criminais e usuários.",
         "title": "AEP API",
         "contact": {},
         "version": "1.0"
@@ -31,10 +31,7 @@
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -72,19 +69,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -118,7 +109,7 @@
                     {
                         "type": "number",
                         "default": 1000,
-                        "description": "Raio em metros",
+                        "description": "Raio de busca em metros",
                         "name": "raio",
                         "in": "query"
                     },
@@ -130,13 +121,13 @@
                     },
                     {
                         "type": "string",
-                        "description": "Início do período (RFC3339)",
+                        "description": "Início do período, em RFC3339",
                         "name": "data_inicio",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Fim do período (RFC3339)",
+                        "description": "Fim do período, em RFC3339",
                         "name": "data_fim",
                         "in": "query"
                     }
@@ -154,19 +145,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -201,19 +186,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -258,28 +237,19 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -315,28 +285,19 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -365,10 +326,7 @@
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -406,19 +364,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -453,19 +405,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -510,28 +456,19 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -567,28 +504,19 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/handlers.ErroResposta"
                         }
                     }
                 }
@@ -601,7 +529,8 @@
             "properties": {
                 "data_hora": {
                     "type": "string",
-                    "format": "date-time"
+                    "format": "date-time",
+                    "description": "Data e hora da ocorrência em RFC3339."
                 },
                 "descricao": {
                     "type": "string"
@@ -620,14 +549,13 @@
         "models.Localizacao": {
             "type": "object",
             "properties": {
-                "coordinates": {
-                    "type": "array",
-                    "items": {
-                        "type": "number"
-                    }
+                "latitude": {
+                    "description": "Latitude em graus decimais, entre -90 e 90.",
+                    "type": "number"
                 },
-                "type": {
-                    "type": "string"
+                "longitude": {
+                    "description": "Longitude em graus decimais, entre -180 e 180.",
+                    "type": "number"
                 }
             }
         },
@@ -648,6 +576,24 @@
                 },
                 "senha": {
                     "type": "string"
+                }
+            }
+        },
+        "handlers.ErroResposta": {
+            "type": "object",
+            "properties": {
+                "codigo": {
+                    "type": "string"
+                },
+                "mensagem": {
+                    "type": "string"
+                },
+                "detalhes": {
+                    "type": "string"
+                },
+                "erro": {
+                    "type": "string",
+                    "description": "Campo legado mantido para compatibilidade."
                 }
             }
         }

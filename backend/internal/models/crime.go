@@ -6,7 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-// Localizacao armazena coordenadas geográficas no formato de pares legado (longitude, latitude)
+// Localizacao armazena latitude e longitude em graus decimais.
 type Localizacao struct {
 	Longitude float64 `bson:"longitude" json:"longitude"`
 	Latitude  float64 `bson:"latitude" json:"latitude"`

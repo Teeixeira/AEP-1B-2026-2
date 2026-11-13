@@ -3,6 +3,7 @@ definitions:
   models.Crime:
     properties:
       data_hora:
+        description: Data e hora da ocorrência em RFC3339
         format: date-time
         type: string
       descricao:
@@ -16,12 +17,12 @@ definitions:
     type: object
   models.Localizacao:
     properties:
-      coordinates:
-        items:
-          type: number
-        type: array
-      type:
-        type: string
+      latitude:
+        description: Latitude em graus decimais, entre -90 e 90
+        type: number
+      longitude:
+        description: Longitude em graus decimais, entre -180 e 180
+        type: number
     type: object
   models.Usuario:
     properties:
@@ -36,9 +37,21 @@ definitions:
       senha:
         type: string
     type: object
+  handlers.ErroResposta:
+    properties:
+      codigo:
+        type: string
+      detalhes:
+        type: string
+      erro:
+        description: Campo legado mantido para compatibilidade.
+        type: string
+      mensagem:
+        type: string
+    type: object
 info:
   contact: {}
-  description: API for the AEP project.
+  description: API do projeto AEP para consulta e gerenciamento de ocorrências criminais e usuários.
   title: AEP API
   version: "1.0"
 paths:
@@ -57,9 +70,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
       summary: Listar crimes
       tags:
       - crimes
@@ -84,15 +95,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
       summary: Criar crime
       tags:
       - crimes
@@ -117,21 +124,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
       summary: Excluir crime
       tags:
       - crimes
@@ -153,15 +154,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
       summary: Buscar crime por ID
       tags:
       - crimes
@@ -191,21 +188,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
       summary: Atualizar crime
       tags:
       - crimes
@@ -224,7 +215,7 @@ paths:
         required: true
         type: number
       - default: 1000
-        description: Raio em metros
+        description: Raio de busca em metros
         in: query
         name: raio
         type: number
@@ -232,11 +223,11 @@ paths:
         in: query
         name: tipo
         type: string
-      - description: Início do período (RFC3339)
+      - description: Início do período, em RFC3339
         in: query
         name: data_inicio
         type: string
-      - description: Fim do período (RFC3339)
+      - description: Fim do período, em RFC3339
         in: query
         name: data_fim
         type: string
@@ -252,15 +243,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
       summary: Buscar crimes próximos
       tags:
       - crimes
@@ -279,9 +266,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
       summary: Listar usuários
       tags:
       - usuarios
@@ -306,15 +291,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
       summary: Criar usuário
       tags:
       - usuarios
@@ -339,21 +320,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
       summary: Excluir usuário
       tags:
       - usuarios
@@ -375,15 +350,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
       summary: Buscar usuário por ID
       tags:
       - usuarios
@@ -413,21 +384,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
         "404":
           description: Not Found
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/handlers.ErroResposta'
       summary: Atualizar usuário
       tags:
       - usuarios

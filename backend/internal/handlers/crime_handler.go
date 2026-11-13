@@ -105,10 +105,10 @@ func (handler *CrimeHandler) FindByID(c *gin.Context) {
 // @Produce json
 // @Param lat query number true "Latitude"
 // @Param lng query number true "Longitude"
-// @Param raio query number false "Raio em metros" default(1000)
+// @Param raio query number false "Raio de busca em metros" default(1000)
 // @Param tipo query string false "Tipo de crime"
-// @Param data_inicio query string false "Início do período (RFC3339)"
-// @Param data_fim query string false "Fim do período (RFC3339)"
+// @Param data_inicio query string false "Início do período, em RFC3339"
+// @Param data_fim query string false "Fim do período, em RFC3339"
 // @Success 200 {array} models.Crime
 // @Failure 400 {object} ErroResposta
 // @Failure 500 {object} ErroResposta
