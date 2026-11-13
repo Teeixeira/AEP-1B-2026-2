@@ -1,4 +1,5 @@
 import L from 'leaflet';
+import { HeatLayer } from 'leaflet.heat';
 import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
 import markerIconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
@@ -19,6 +20,16 @@ export function setupMap(element) {
     const testButton = document.querySelector('#add-test-points');
     const retryButton = document.querySelector('#retry-search');
     const status = document.querySelector('#search-status');
+    const heatToggle = document.querySelector('#show-heat');
+    const heatLegend = document.querySelector('#heat-legend');
+    const heatLayer = new HeatLayer([], {
+        radius: 45,
+        blur: 30,
+        max: 4,
+        maxZoom: 13,
+        minOpacity: 0.2,
+        gradient: { 0.2: '#ffd166', 0.5: '#f59e36', 0.75: '#ed633c', 1: '#c62828' }
+    });
     let userMarker;
     let location;
     let radiusCircle;
@@ -28,6 +39,13 @@ export function setupMap(element) {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
+
+    if (heatToggle.checked) heatLayer.addTo(map);
+    heatToggle.addEventListener('change', () => {
+        if (heatToggle.checked) heatLayer.addTo(map);
+        else heatLayer.remove();
+        heatLegend.hidden = !heatToggle.checked;
+    });
 
     function showStatus(message, type = 'info', retry = false) {
         status.textContent = message;
@@ -80,7 +98,7 @@ export function setupMap(element) {
         showStatus('Carregando ocorrências...', 'loading');
 
         try {
-            const count = await getNear(points, location, radiusInMeters);
+            const count = await getNear(points, location, radiusInMeters, heatLayer);
             const distance = radiusKm.toLocaleString('pt-BR', { maximumSignificantDigits: 15 });
             if (count === 0) {
                 showStatus(`Nenhuma ocorrência encontrada em um raio de ${distance} km. Tente aumentar a distância.`, 'empty');
@@ -192,8 +210,9 @@ export function setupMap(element) {
     useLocation();
 }
 
-export async function getNear(points, location, radiusInMeters) {
+export async function getNear(points, location, radiusInMeters, heatLayer = null) {
     points.clearLayers();
+    if (heatLayer) updateHeat(points, heatLayer);
     let response;
     try {
         response = await fetch(`/api/crimes/proximos?lat=${location.lat}&lng=${location.lng}&raio=${radiusInMeters}`);
@@ -245,6 +264,7 @@ export async function getNear(points, location, radiusInMeters) {
                 if (!response.ok) {
                     throw await parseAPIError(response, 'Erro ao atualizar localização da ocorrência.');
                 }
+
             } catch (error) {
                 crime.localizacao.latitude = originalLat;
                 crime.localizacao.longitude = originalLng;
@@ -255,9 +275,15 @@ export async function getNear(points, location, radiusInMeters) {
                 alert(msg);
             } finally {
                 marker.dragging.enable();
+                if (heatLayer) updateHeat(points, heatLayer);
             }
         });
     });
 
+    if (heatLayer) updateHeat(points, heatLayer);
     return crimes.length;
+}
+
+function updateHeat(points, heatLayer) {
+    heatLayer.setLatLngs(points.getLayers().map(marker => marker.getLatLng()));
 }

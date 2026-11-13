@@ -155,7 +155,6 @@ func (handler *CrimeHandler) FindNear(c *gin.Context) {
 	)
 
 	if err != nil {
-		if errors.Is(err, services.ErrRaioInvalido) {
 		if errors.Is(err, services.ErrRaioInvalido) ||
 			errors.Is(err, services.ErrPeriodoInvalido) {
 			RespostaEntradaInvalida(c, err.Error())
