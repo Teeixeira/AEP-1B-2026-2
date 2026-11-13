@@ -110,8 +110,10 @@ O servidor de desenvolvimento do Vite normalmente é executado em [http://localh
 A API está agrupada em `/api` e atualmente fornece:
 
 - `GET`, `POST`, `PUT` e `DELETE` `/api/crimes`
-- `GET` `/api/crimes/proximos?lat={latitude}&lng={longitude}&raio={meters}`
+- `GET` `/api/crimes/proximos?lat={latitude}&lng={longitude}&raio={meters}&tipo={type}&data_inicio={RFC3339}&data_fim={RFC3339}`
 - `GET`, `POST`, `PUT` e `DELETE` `/api/usuarios`
+
+Os filtros `tipo`, `data_inicio` e `data_fim` são opcionais. As datas devem estar no formato RFC3339, por exemplo `2026-08-28T12:00:00Z`.
 
 Utilize o Swagger para consultar os esquemas completos de requisição e resposta.
 
