@@ -1,6 +1,8 @@
 # AEP-1B-2026-2
 
-Aplicação de conscientização sobre ocorrências criminais. O frontend apresenta ocorrências em um mapa interativo e permite consultá-las por proximidade; a API também oferece operações CRUD para crimes e usuários.
+## Classificador de criminalidade
+
+Classificador de criminalidade é uma aplicação de conscientização sobre crimes baseada em localização. Ela exibe ocorrências de crimes próximas em um mapa interativo, utilizando a localização atual do usuário e um raio de busca configurável. O backend também fornece endpoints CRUD para ocorrências de crimes e usuários.
 
 ## Objetivos de Desenvolvimento Sustentável
 
